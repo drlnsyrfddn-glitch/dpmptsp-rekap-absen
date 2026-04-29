@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Admin - DPMPTSP Morowali</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script>
+        if (sessionStorage.getItem('isLoggedIn') !== 'true' || sessionStorage.getItem('userRole') !== 'Admin') { window.location.href = 'login.html'; }
+        
+        function logout() { 
+            Swal.fire({
+                title: 'Yakin ingin keluar?',
+                text: "Sesi Anda akan diakhiri.",
+                icon: 'question', showCancelButton: true,
+                confirmButtonColor: '#dc2626', cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Ya, Keluar!', cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) { sessionStorage.clear(); window.location.href = 'login.html'; }
+            });
+        }
+    </script>
+    <style>
+        .hanya-print { display: none; }
+        @media print {
+            body { background-color: white; }
+            .no-print { display: none !important; }
+            .hanya-print { display: block !important; }
+            
+            .data-table { border-collapse: collapse !important; width: 100% !important; }
+            .data-table th, .data-table td { border: 1px solid black !important; padding: 6px !important; color: black !important; font-size: 12px; }
+            .data-table th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+            
+            .data-table thead { display: table-header-group; } 
+            .data-table tr { page-break-inside: avoid; break-inside: avoid; }
+            
+            .signature-table, .signature-table tr, .signature-table td { border: none !important; page-break-inside: avoid; break-inside: avoid; }
+            
+            @page { size: landscape; margin: 15mm; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-gray-800 font-sans antialiased">
+
+    <div class="hanya-print mb-6 text-black px-8 mt-4">
+        <div class="relative flex items-center justify-center border-b-4 border-black pb-4 mb-1">
+            <img src="assets/img/morowali.png" alt="Logo Morowali" class="absolute left-0 w-24 h-auto">
+            <div class="text-center w-full px-20">
+                <h3 class="text-xl font-bold uppercase m-0">Pemerintah Kabupaten Morowali</h3>
+                <h2 class="text-2xl font-bold uppercase m-0">Dinas Penanaman Modal dan <br>Pelayanan Terpadu Satu Pintu</h2>
+                <p class="text-sm m-0 mt-1">Alamat: Kompleks Perkantoran Fonuasingko, Bungku Tengah | Email: dpmptsp@morowalikab.go.id</p>
+            </div>
+        </div>
+        <div class="border-b-2 border-black mt-1 mb-4"></div>
+        <h4 id="judulKopSurat" class="text-lg font-bold text-center underline mb-4">LAPORAN REKAPITULASI ABSENSI PEGAWAI</h4>
+    </div>
+
+    <div class="no-print max-w-7xl mx-auto mt-8 p-4 pb-0">
+        <div class="flex flex-col md:flex-row justify-between items-center bg-blue-900 text-white p-6 rounded-t-lg shadow-md">
+            <div class="mb-4 md:mb-0">
+                <h1 class="text-2xl font-bold">Panel Kepegawaian</h1>
+                <p class="text-blue-200 text-sm">Selamat datang, <span id="namaUser" class="font-bold"></span></p>
+            </div>
+            <div class="flex gap-2 items-center">
+                <button id="btnExcel" onclick="exportKeExcel()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-bold transition flex items-center shadow">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Unduh Excel
+                </button>
+                <button id="btnCetak" onclick="cetakLaporan()" class="bg-amber-500 hover:bg-amber-600 px-4 py-2 rounded font-bold transition flex items-center shadow">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Cetak Laporan
+                </button>
+                <button onclick="logout()" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-bold transition shadow ml-2">Keluar</button>
+            </div>
+        </div>
+
+        <div class="bg-white border-b border-gray-200 shadow-sm px-6 py-3 flex space-x-4">
+            <button onclick="switchTab('rekap')" id="tab-rekap" class="px-4 py-2 font-bold rounded-md bg-blue-100 text-blue-800 transition">📝 Rekap Absen</button>
+            <button onclick="switchTab('pegawai')" id="tab-pegawai" class="px-4 py-2 font-bold rounded-md text-gray-500 hover:bg-gray-100 transition">👥 Master Pegawai</button>
+        </div>
+    </div>
+
+    <div id="content-rekap" class="max-w-7xl mx-auto px-4 print:px-8 print:max-w-full">
+        
+        <div class="bg-white p-6 shadow-md mb-8 no-print rounded-b-lg">
+            <h2 id="formTitleRekap" class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">Input Rekap Absensi Baru</h2>
+            <form id="formAbsen">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-bold mb-1">Nama Pegawai</label>
+                        <select id="nipRekap" required class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500" onchange="autoFillNip()">
+                            <option value="">-- Pilih Pegawai --</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-bold mb-1 text-gray-500">NIP / NIK</label>
+                        <input type="text" id="nipPegawaiAuto" readonly class="w-full px-3 py-2 border rounded bg-gray-100 text-gray-600" placeholder="Otomatis terisi...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-1">Bulan</label>
+                        <select id="bulanRekap" required class="w-full px-3 py-2 border rounded">
+                            <option value="Januari">Januari</option><option value="Februari">Februari</option><option value="Maret" selected>Maret</option>
+                            <option value="April">April</option><option value="Mei">Mei</option><option value="Juni">Juni</option>
+                            <option value="Juli">Juli</option><option value="Agustus">Agustus</option><option value="September">September</option>
+                            <option value="Oktober">Oktober</option><option value="November">November</option><option value="Desember">Desember</option>
+                        </select>
+                    </div>
+                    <div><label class="block text-sm font-bold mb-1">Tahun</label><input type="number" id="tahunRekap" required value="2026" class="w-full px-3 py-2 border rounded"></div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-4 mb-4 bg-slate-50 p-4 rounded border border-blue-100">
+                    <div><label class="block text-green-700 text-sm font-bold mb-1">Hadir</label><input type="number" id="hadir" required min="0" value="0" class="w-full px-2 py-1 border rounded text-center"></div>
+                    <div><label class="block text-yellow-600 text-sm font-bold mb-1">Sakit</label><input type="number" id="sakit" required min="0" value="0" class="w-full px-2 py-1 border rounded text-center"></div>
+                    <div><label class="block text-blue-600 text-sm font-bold mb-1">Izin</label><input type="number" id="izin" required min="0" value="0" class="w-full px-2 py-1 border rounded text-center"></div>
+                    <div><label class="block text-red-600 text-sm font-bold mb-1">Alpa</label><input type="number" id="alpa" required min="0" value="0" class="w-full px-2 py-1 border rounded text-center"></div>
+                </div>
+                
+                <div class="mb-4"><label class="block text-sm font-bold mb-1">Keterangan</label><input type="text" id="keteranganRekap" class="w-full px-3 py-2 border rounded" placeholder="-"></div>
+                
+                <div class="flex items-center justify-between">
+                    <div></div>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="resetFormRekap()" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded hidden" id="btnBatalRekap">Batal Edit</button>
+                        <button type="submit" id="btnSubmitRekap" class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-6 rounded shadow">Simpan Data Absen</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-md print:shadow-none print:p-0 border print:border-none mb-20">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4 border-b pb-4 no-print gap-4">
+                <h2 class="text-lg font-bold text-gray-700 w-full md:w-auto">Preview Data Rekapitulasi</h2>
+                
+                <div class="flex flex-wrap gap-2 items-center justify-end w-full md:w-auto">
+                    <div class="relative w-full md:w-48">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/></svg>
+                        </div>
+                        <input type="text" id="searchRekap" oninput="applyFilter()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2" placeholder="Cari Nama...">
+                    </div>
+
+                    <div class="flex gap-2 items-center bg-blue-50 p-2 rounded border border-blue-100">
+                        <span class="text-sm font-bold text-blue-800 hidden md:block">Filter:</span>
+                        <select id="filterBulan" class="px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" onchange="applyFilter()">
+                            <option value="Semua">Semua Bulan</option>
+                            <option value="Januari">Januari</option><option value="Februari">Februari</option><option value="Maret" selected>Maret</option>
+                            <option value="April">April</option><option value="Mei">Mei</option><option value="Juni">Juni</option>
+                            <option value="Juli">Juli</option><option value="Agustus">Agustus</option><option value="September">September</option>
+                            <option value="Oktober">Oktober</option><option value="November">November</option><option value="Desember">Desember</option>
+                        </select>
+                        <input type="number" id="filterTahun" value="2026" class="px-2 py-1 border rounded text-sm w-20 focus:outline-none focus:ring-1 focus:ring-blue-500" onchange="applyFilter()">
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="data-table w-full text-sm text-left border-collapse border border-gray-300">
+                    <thead class="bg-gray-100 uppercase text-xs font-bold">
+                        <tr>
+                            <th class="border px-4 py-2">Nama Pegawai / NIP</th>
+                            <th class="border px-4 py-2 text-center">Bulan</th><th class="border px-4 py-2 text-center">Tahun</th>
+                            <th class="border px-4 py-2 text-center">Hadir</th><th class="border px-4 py-2 text-center">Sakit</th><th class="border px-4 py-2 text-center">Izin</th>
+                            <th class="border px-4 py-2 text-center">Alpa</th><th class="border px-4 py-2">Ket</th><th class="border px-4 py-2 text-center no-print">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBodyRekap"><tr><td colspan="9" class="text-center py-6">⏳ Memuat data...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="content-pegawai" class="max-w-7xl mx-auto px-4 hidden no-print">
+        
+        <div class="bg-white p-6 shadow-md mb-8 rounded-b-lg border-t-4 border-blue-900">
+            <h2 id="formTitlePegawai" class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">Form Tambah Pegawai Baru</h2>
+            <form id="formPegawai">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div><label class="block text-sm font-bold mb-1">NIP / NIK</label><input type="text" id="nipMaster" required class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-sm font-bold mb-1">Nama Lengkap (Sesuai SK)</label><input type="text" id="namaMaster" required class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-sm font-bold mb-1">Jabatan</label><input type="text" id="jabatanMaster" required class="w-full px-3 py-2 border rounded"></div>
+                    <div class="flex gap-4">
+                        <div class="w-1/2">
+                            <label class="block text-sm font-bold mb-1">Kategori</label>
+                            <select id="kategoriMaster" required class="w-full px-3 py-2 border rounded">
+                                <option value="PNS">PNS</option><option value="PPPK">PPPK</option><option value="PPPK Paruh Waktu">PPPK Paruh Waktu</option><option value="Outsourcing">Outsourcing</option>
+                            </select>
+                        </div>
+                        <div class="w-1/2">
+                            <label class="block text-sm font-bold mb-1">Status</label>
+                            <select id="statusMaster" required class="w-full px-3 py-2 border rounded bg-green-50">
+                                <option value="Aktif">Aktif</option><option value="Tidak Aktif">Tidak Aktif</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between mt-6">
+                    <div></div>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="resetFormPegawai()" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded hidden" id="btnBatalPegawai">Batal Edit</button>
+                        <button type="submit" id="btnSubmitPegawai" class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-6 rounded shadow">Simpan Data Pegawai</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-md mb-20 border">
+            <div class="flex justify-between items-center mb-4 border-b pb-4">
+                <h2 class="text-lg font-bold text-gray-700">Daftar Pegawai Saat Ini</h2>
+                <div class="relative w-48 md:w-64">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/></svg>
+                    </div>
+                    <input type="text" id="searchPegawai" oninput="renderTabelPegawai()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2" placeholder="Cari NIP / Nama...">
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left border-collapse border border-gray-300">
+                    <thead class="bg-gray-100 uppercase text-xs font-bold">
+                        <tr><th class="border px-4 py-2 w-10 text-center">No</th><th class="border px-4 py-2">NIP / NIK</th><th class="border px-4 py-2">Nama Lengkap</th><th class="border px-4 py-2">Jabatan</th><th class="border px-4 py-2 text-center">Kategori</th><th class="border px-4 py-2 text-center">Status</th><th class="border px-4 py-2 text-center">Aksi</th></tr>
+                    </thead>
+                    <tbody id="tableBodyPegawai"><tr><td colspan="7" class="text-center py-6">⏳ Memuat data...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="hanya-print mt-10 pr-12 text-black">
+        <table class="signature-table w-full text-black">
+            <tr>
+                <td style="width: 60%;"></td>
+                <td style="width: 40%; text-align: left; font-size: 14px;">
+                    <p class="mb-0" id="tanggalCetakLaporan">Bungku, ........................</p>
+                    <p class="mb-20">Mengetahui,<br>Kepala Dinas Penanaman Modal dan PTSP<br>Kabupaten Morowali,</p>
+                    <p class="font-bold underline mb-0">ELYTA GAWI, ST., MT</p>
+                    <p>Pembina Utama Muda, IV/c <br>NIP. 19761212 200212 2 006</p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <script>
+        document.getElementById('namaUser').innerText = sessionStorage.getItem('userName');
+        const URL_GAS = "https://script.google.com/macros/s/AKfycbxNNmH8GmlkJkBxzUkItWH1a5c1BbLWRAzy1fA4agwFiFJnCh8v1rgDfCNtbrzBUIfRAg/exec";
+        
+        let masterPegawai = [];
+        let rawDataRekap = []; 
+        let currentFilteredData = []; 
+
+        function switchTab(tab) {
+            document.getElementById('content-rekap').classList.add('hidden');
+            document.getElementById('content-pegawai').classList.add('hidden');
+            document.getElementById('tab-rekap').className = "px-4 py-2 font-bold rounded-md text-gray-500 hover:bg-gray-100 transition";
+            document.getElementById('tab-pegawai').className = "px-4 py-2 font-bold rounded-md text-gray-500 hover:bg-gray-100 transition";
+            
+            if (tab === 'rekap') {
+                document.getElementById('content-rekap').classList.remove('hidden');
+                document.getElementById('tab-rekap').className = "px-4 py-2 font-bold rounded-md bg-blue-100 text-blue-800 transition";
+                document.getElementById('btnCetak').classList.remove('hidden');
+                document.getElementById('btnExcel').classList.remove('hidden'); 
+            } else {
+                document.getElementById('content-pegawai').classList.remove('hidden');
+                document.getElementById('tab-pegawai').className = "px-4 py-2 font-bold rounded-md bg-blue-100 text-blue-800 transition";
+                document.getElementById('btnCetak').classList.add('hidden');
+                document.getElementById('btnExcel').classList.add('hidden'); 
+            }
+        }
+
+        window.onload = () => { 
+            loadPegawai(() => { loadRekap(); }); 
+        };
+
+        // --- FUNGSI POP-UP TANGGAL CETAK ---
+        async function cetakLaporan() {
+            const today = new Date();
+            const bulanIndo = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+            const tglDefault = `${today.getDate()} ${bulanIndo[today.getMonth()]} ${today.getFullYear()}`;
+            
+            const { value: tanggalInput } = await Swal.fire({
+                title: 'Atur Tanggal Laporan',
+                input: 'text',
+                inputLabel: 'Masukkan tanggal untuk tanda tangan:',
+                inputValue: tglDefault,
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Cetak Sekarang',
+                cancelButtonText: 'Batal',
+                inputValidator: (value) => {
+                    if (!value) { return 'Tanggal tidak boleh kosong!'; }
+                }
+            });
+
+            if (tanggalInput) {
+                document.getElementById('tanggalCetakLaporan').innerText = `Bungku, ${tanggalInput}`;
+                setTimeout(() => { window.print(); }, 300); // Jeda kecil untuk DOM update
+            }
+        }
+
+        function autoFillNip() {
+            const nipDipilih = document.getElementById('nipRekap').value;
+            document.getElementById('nipPegawaiAuto').value = nipDipilih;
+        }
+
+        function loadRekap() {
+            fetch(URL_GAS + "?action=get_rekap").then(res => res.json()).then(data => {
+                rawDataRekap = data; 
+                applyFilter(); 
+            });
+        }
+
+        function applyFilter() {
+            const bulanFilter = document.getElementById('filterBulan').value;
+            const tahunFilter = document.getElementById('filterTahun').value;
+            const textSearch = document.getElementById('searchRekap').value.toLowerCase(); 
+            
+            const tbody = document.getElementById('tableBodyRekap');
+            const judulKop = document.getElementById('judulKopSurat');
+            
+            tbody.innerHTML = '';
+
+            if(bulanFilter === "Semua") {
+                judulKop.innerText = `LAPORAN REKAPITULASI ABSENSI PEGAWAI TAHUN ${tahunFilter}`;
+            } else {
+                judulKop.innerText = `LAPORAN REKAPITULASI ABSENSI PEGAWAI BULAN ${bulanFilter.toUpperCase()} ${tahunFilter}`;
+            }
+
+            let filteredData = rawDataRekap.filter(row => row.ID_Rekap); 
+            if (bulanFilter !== "Semua") filteredData = filteredData.filter(row => row.Bulan === bulanFilter);
+            if (tahunFilter) filteredData = filteredData.filter(row => row.Tahun == tahunFilter);
+
+            if (textSearch) {
+                filteredData = filteredData.filter(row => {
+                    const peg = masterPegawai.find(p => p.NIP_NIK === row.NIP_NIK);
+                    const nama = peg ? peg.Nama_Lengkap.toLowerCase() : "";
+                    const nip = row.NIP_NIK ? row.NIP_NIK.toLowerCase() : "";
+                    return nama.includes(textSearch) || nip.includes(textSearch);
+                });
+            }
+
+            currentFilteredData = filteredData; 
+
+            if(filteredData.length === 0) { 
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-gray-500">Tidak ada data ditemukan.</td></tr>`; 
+                return; 
+            }
+            
+            filteredData.forEach(row => {
+                const peg = masterPegawai.find(p => p.NIP_NIK === row.NIP_NIK);
+                const namaTampil = peg ? peg.Nama_Lengkap : "<span class='text-red-500 italic'>Pegawai Terhapus</span>";
+
+                tbody.innerHTML += `<tr class="hover:bg-gray-50 transition">
+                    <td class="border px-4 py-2">
+                        <div class="font-bold text-blue-800">${namaTampil}</div>
+                        <div class="text-xs text-gray-500 font-mono mt-0.5">${row.NIP_NIK}</div>
+                    </td>
+                    <td class="border px-4 py-2 text-center">${row.Bulan}</td><td class="border px-4 py-2 text-center">${row.Tahun}</td>
+                    <td class="border px-4 py-2 text-center text-green-600 font-bold">${row.Hadir}</td>
+                    <td class="border px-4 py-2 text-center">${row.Sakit}</td><td class="border px-4 py-2 text-center">${row.Izin}</td>
+                    <td class="border px-4 py-2 text-center text-red-600">${row.Alpa}</td><td class="border px-4 py-2 text-xs">${row.Keterangan}</td>
+                    <td class="border px-4 py-2 text-center no-print whitespace-nowrap">
+                        <button onclick="editRekap('${row.NIP_NIK}', '${row.Bulan}', '${row.Tahun}', '${row.Hadir}', '${row.Sakit}', '${row.Izin}', '${row.Alpa}', '${row.Keterangan}')" class="text-blue-500 hover:text-blue-700 mr-2 font-bold">✎ Edit</button>
+                        <button onclick="hapusRekap('${row.ID_Rekap}')" class="text-red-500 hover:text-red-700 font-bold">🗑 Hapus</button>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        function exportKeExcel() {
+            if(currentFilteredData.length === 0) {
+                Swal.fire('Tabel Kosong', 'Tidak ada data untuk diekspor ke Excel.', 'warning');
+                return;
+            }
+
+            const dataExcel = currentFilteredData.map((row, index) => {
+                const peg = masterPegawai.find(p => p.NIP_NIK === row.NIP_NIK);
+                return {
+                    "No": index + 1,
+                    "Nama Pegawai": peg ? peg.Nama_Lengkap : "Pegawai Terhapus",
+                    "NIP / NIK": row.NIP_NIK,
+                    "Jabatan": peg ? peg.Jabatan : "-",
+                    "Status": peg ? peg.Kategori : "-",
+                    "Bulan": row.Bulan,
+                    "Tahun": row.Tahun,
+                    "Hadir": parseInt(row.Hadir) || 0,
+                    "Sakit": parseInt(row.Sakit) || 0,
+                    "Izin": parseInt(row.Izin) || 0,
+                    "Alpa": parseInt(row.Alpa) || 0,
+                    "Keterangan": row.Keterangan || "-"
+                };
+            });
+
+            const ws = XLSX.utils.json_to_sheet(dataExcel);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Data Absen");
+            
+            const namaFile = `Rekap_Absen_DPMPTSP_${document.getElementById('filterBulan').value}_${document.getElementById('filterTahun').value}.xlsx`;
+            XLSX.writeFile(wb, namaFile);
+
+            Swal.fire({ title: 'Berhasil!', text: 'File Excel sedang diunduh.', icon: 'success', timer: 1500, showConfirmButton: false });
+        }
+
+        document.getElementById('formAbsen').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const h = parseInt(document.getElementById('hadir').value) || 0; const s = parseInt(document.getElementById('sakit').value) || 0;
+            const i = parseInt(document.getElementById('izin').value) || 0; const a = parseInt(document.getElementById('alpa').value) || 0;
+            
+            if(h+s+i+a > 31) { 
+                Swal.fire('Peringatan Logika', 'Total input absensi melebihi jumlah hari dalam sebulan (31 hari)!', 'warning'); 
+                return; 
+            }
+
+            const btn = document.getElementById('btnSubmitRekap');
+            btn.innerText = "Menyimpan..."; btn.disabled = true; 
+            
+            const payload = {
+                action: "simpan_absen", nip: document.getElementById('nipRekap').value, bulan: document.getElementById('bulanRekap').value, tahun: document.getElementById('tahunRekap').value,
+                hadir: h, sakit: s, izin: i, alpa: a, keterangan: document.getElementById('keteranganRekap').value
+            };
+
+            fetch(URL_GAS, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) })
+            .then(res => res.json()).then(data => {
+                Swal.fire({ title: 'Berhasil!', text: 'Data absen berhasil disimpan ke server.', icon: 'success', timer: 2000, showConfirmButton: false });
+                loadRekap(); resetFormRekap();
+            });
+        });
+
+        function editRekap(nip, bulan, tahun, hadir, sakit, izin, alpa, ket) {
+            document.getElementById('formTitleRekap').innerText = "✎ Edit Data Absensi"; document.getElementById('formTitleRekap').classList.add('text-amber-600');
+            document.getElementById('btnSubmitRekap').innerText = "Update Data"; document.getElementById('btnBatalRekap').classList.remove('hidden');
+            
+            document.getElementById('nipRekap').value = nip; autoFillNip();
+            document.getElementById('bulanRekap').value = bulan; document.getElementById('tahunRekap').value = tahun;
+            document.getElementById('hadir').value = hadir; document.getElementById('sakit').value = sakit;
+            document.getElementById('izin').value = izin; document.getElementById('alpa').value = alpa;
+            document.getElementById('keteranganRekap').value = ket;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function hapusRekap(idRekap) {
+            Swal.fire({
+                title: 'Hapus Rekap Absen?',
+                text: "Data ini akan dihapus secara permanen dari database!",
+                icon: 'warning', showCancelButton: true,
+                confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'Ya, Hapus!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(URL_GAS, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: "hapus_absen", idRekap: idRekap }) })
+                    .then(res => res.json()).then(() => {
+                        Swal.fire('Terhapus!', 'Data absen telah dihapus.', 'success');
+                        loadRekap();
+                    });
+                }
+            });
+        }
+
+        function resetFormRekap() {
+            document.getElementById('formAbsen').reset(); document.getElementById('nipPegawaiAuto').value = "";
+            document.getElementById('formTitleRekap').innerText = "Input Rekap Absensi Baru"; document.getElementById('formTitleRekap').classList.remove('text-amber-600');
+            document.getElementById('btnSubmitRekap').innerText = "Simpan Data Absen"; document.getElementById('btnSubmitRekap').disabled = false;
+            document.getElementById('btnBatalRekap').classList.add('hidden');
+        }
+
+        function loadPegawai(callback = null) {
+            fetch(URL_GAS + "?action=get_pegawai").then(res => res.json()).then(data => {
+                masterPegawai = data;
+                const selectNip = document.getElementById('nipRekap'); selectNip.innerHTML = '<option value="">-- Pilih Pegawai --</option>';
+                data.forEach(p => { if(p.NIP_NIK) selectNip.innerHTML += `<option value="${p.NIP_NIK}">${p.Nama_Lengkap} (${p.NIP_NIK})</option>`; });
+                renderTabelPegawai();
+                if(callback) callback();
+            });
+        }
+
+        function renderTabelPegawai() {
+            const tbody = document.getElementById('tableBodyPegawai');
+            const textSearch = document.getElementById('searchPegawai').value.toLowerCase();
+            tbody.innerHTML = '';
+
+            let dataTampil = masterPegawai.filter(row => row.NIP_NIK); 
+            if(textSearch) {
+                dataTampil = dataTampil.filter(row => row.Nama_Lengkap.toLowerCase().includes(textSearch) || row.NIP_NIK.toLowerCase().includes(textSearch));
+            }
+
+            if(dataTampil.length === 0) { 
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-gray-500">Tidak ada pegawai ditemukan.</td></tr>'; 
+                return; 
+            }
+            
+            dataTampil.forEach((row, index) => {
+                let badge = row.Status === "Aktif" ? `<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">Aktif</span>` : `<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">Tidak Aktif</span>`;
+                tbody.innerHTML += `<tr class="hover:bg-gray-50 transition">
+                    <td class="border px-4 py-2 text-center">${index + 1}</td><td class="border px-4 py-2 font-mono text-gray-600">${row.NIP_NIK}</td>
+                    <td class="border px-4 py-2 text-blue-800 font-bold">${row.Nama_Lengkap}</td><td class="border px-4 py-2">${row.Jabatan}</td>
+                    <td class="border px-4 py-2 text-center">${row.Kategori}</td><td class="border px-4 py-2 text-center">${badge}</td>
+                    <td class="border px-4 py-2 text-center whitespace-nowrap">
+                        <button onclick="editPegawai('${row.NIP_NIK}', '${row.Nama_Lengkap}', '${row.Jabatan}', '${row.Kategori}', '${row.Status}')" class="text-blue-500 hover:text-blue-700 mr-2 font-bold">✎ Edit</button>
+                        <button onclick="hapusPegawai('${row.NIP_NIK}')" class="text-red-500 hover:text-red-700 font-bold">🗑 Hapus</button>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        document.getElementById('formPegawai').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitPegawai'); 
+            btn.innerText = "Menyimpan..."; btn.disabled = true; 
+            
+            const payload = {
+                action: "simpan_pegawai", nip: document.getElementById('nipMaster').value, nama: document.getElementById('namaMaster').value,
+                jabatan: document.getElementById('jabatanMaster').value, kategori: document.getElementById('kategoriMaster').value, status: document.getElementById('statusMaster').value
+            };
+
+            fetch(URL_GAS, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) })
+            .then(res => res.json()).then(data => {
+                Swal.fire({ title: 'Tersimpan!', text: data.message, icon: 'success', timer: 2000, showConfirmButton: false });
+                loadPegawai(() => { loadRekap(); resetFormPegawai(); }); 
+            });
+        });
+
+        function editPegawai(nip, nama, jabatan, kategori, status) {
+            document.getElementById('formTitlePegawai').innerText = "✎ Edit Data Pegawai"; document.getElementById('formTitlePegawai').classList.add('text-amber-600');
+            document.getElementById('btnSubmitPegawai').innerText = "Update Data"; document.getElementById('btnBatalPegawai').classList.remove('hidden');
+            
+            document.getElementById('nipMaster').value = nip; document.getElementById('nipMaster').readOnly = true; document.getElementById('nipMaster').classList.add('bg-gray-100');
+            document.getElementById('namaMaster').value = nama; document.getElementById('jabatanMaster').value = jabatan;
+            document.getElementById('kategoriMaster').value = kategori; document.getElementById('statusMaster').value = status;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function hapusPegawai(nip) {
+            Swal.fire({
+                title: 'Hapus Pegawai?',
+                text: `Yakin ingin menghapus NIP ${nip}? Ini akan menyembunyikan namanya dari form absen.`,
+                icon: 'warning', showCancelButton: true,
+                confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'Ya, Hapus!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(URL_GAS, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: "hapus_pegawai", nip: nip }) })
+                    .then(res => res.json()).then(() => {
+                        Swal.fire('Terhapus!', 'Pegawai telah dihapus dari sistem.', 'success');
+                        loadPegawai(() => { loadRekap(); });
+                    });
+                }
+            });
+        }
+
+        function resetFormPegawai() {
+            document.getElementById('formPegawai').reset();
+            document.getElementById('nipMaster').readOnly = false; document.getElementById('nipMaster').classList.remove('bg-gray-100');
+            document.getElementById('formTitlePegawai').innerText = "Form Tambah Pegawai Baru"; document.getElementById('formTitlePegawai').classList.remove('text-amber-600');
+            document.getElementById('btnSubmitPegawai').innerText = "Simpan Data Pegawai"; document.getElementById('btnSubmitPegawai').disabled = false;
+            document.getElementById('btnBatalPegawai').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

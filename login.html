@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - DPMPTSP Morowali</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-200 flex items-center justify-center h-screen antialiased">
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
+        <div class="text-center mb-8">
+            <img src="assets/img/morowali.png" alt="Logo Morowali" class="w-20 mx-auto mb-4">
+            <h2 class="text-2xl font-bold text-gray-800">DPMPTSP Morowali</h2>
+            <p class="text-gray-500 text-sm">Sistem Informasi Kepegawaian</p>
+        </div>
+
+        <form id="loginForm">
+            <div class="mb-4">
+                <label class="block text-gray-700 font-bold mb-2">Username</label>
+                <input type="text" id="username" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <div class="mb-6">
+                <label class="block text-gray-700 font-bold mb-2">Password</label>
+                <input type="password" id="password" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <p id="errorMsg" class="text-red-500 text-sm font-bold text-center mb-4 hidden"></p>
+            <button type="submit" id="btnLogin" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-bold py-3 rounded-lg transition">Masuk</button>
+        </form>
+    </div>
+
+    <script>
+        const URL_GAS = "https://script.google.com/macros/s/AKfycbxNNmH8GmlkJkBxzUkItWH1a5c1BbLWRAzy1fA4agwFiFJnCh8v1rgDfCNtbrzBUIfRAg/exec";
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnLogin');
+            const errorMsg = document.getElementById('errorMsg');
+            
+            btn.innerText = "Memeriksa..."; btn.disabled = true; errorMsg.classList.add('hidden');
+
+            fetch(URL_GAS, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: "login", username: document.getElementById('username').value, password: document.getElementById('password').value })
+            }).then(res => res.json()).then(data => {
+                if (data.status === "success") {
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('userRole', data.role);
+                    sessionStorage.setItem('userName', data.nama);
+                    window.location.href = data.role === "Admin" ? "index.html" : "dashboard.html";
+                } else {
+                    errorMsg.innerText = data.message; errorMsg.classList.remove('hidden');
+                    btn.innerText = "Masuk"; btn.disabled = false;
+                }
+            }).catch(() => {
+                errorMsg.innerText = "Error jaringan."; errorMsg.classList.remove('hidden');
+                btn.innerText = "Masuk"; btn.disabled = false;
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Dashboard - DPMPTSP Morowali</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        if (sessionStorage.getItem('isLoggedIn') !== 'true') { window.location.href = 'login.html'; }
+        function logout() { 
+            Swal.fire({
+                title: 'Keluar dari Dashboard?',
+                icon: 'question', showCancelButton: true,
+                confirmButtonColor: '#10b981', cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Ya, Keluar'
+            }).then((result) => {
+                if (result.isConfirmed) { sessionStorage.clear(); window.location.href = 'login.html'; }
+            });
+        }
+    </script>
+    <style>
+        .hanya-print { display: none; } 
+        @media print {
+            body { background-color: white; }
+            .no-print { display: none !important; }
+            .hanya-print { display: block !important; }
+            .print-full { width: 100% !important; max-width: 100% !important; }
+            @page { size: landscape; margin: 10mm; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans antialiased text-gray-800">
+
+    <div class="bg-gradient-to-r from-emerald-900 to-teal-700 text-white p-6 shadow-xl no-print">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <div class="bg-white p-1.5 rounded-lg shadow-lg hidden md:block">
+                    <img src="assets/img/morowali.png" alt="Logo" class="w-12 h-auto">
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-wide">Executive Dashboard</h1>
+                    <p class="text-emerald-100 text-sm">Sistem Informasi Kehadiran - DPMPTSP Kab. Morowali</p>
+                </div>
+            </div>
+            <div class="flex gap-3 items-center">
+                <div class="text-right hidden md:block mr-4 border-r border-teal-500 pr-4">
+                    <p class="text-xs text-teal-200">Akses Pimpinan</p>
+                    <p class="font-bold" id="namaUser">Memuat...</p>
+                </div>
+                <button onclick="cetakLaporan()" class="bg-teal-600 hover:bg-teal-500 px-4 py-2 rounded-lg font-bold transition flex items-center shadow-lg border border-teal-400">
+                    🖨️ Cetak PDF
+                </button>
+                <button onclick="logout()" class="bg-rose-600 hover:bg-rose-500 px-4 py-2 rounded-lg font-bold transition shadow-lg">
+                    Keluar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 py-8 print-full">
+        
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-4 rounded-xl shadow-sm border border-gray-100 no-print">
+            <h2 class="text-lg font-bold text-gray-700 flex items-center gap-2">
+                📊 Analitik Kehadiran
+            </h2>
+            <div class="flex gap-3 items-center mt-4 md:mt-0">
+                <span class="text-sm font-bold text-gray-500">Periode:</span>
+                <select id="filterBulan" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 font-semibold shadow-sm" onchange="applyFilters()">
+                    <option value="Semua">Tahun Ini</option>
+                    <option value="Januari">Januari</option><option value="Februari">Februari</option><option value="Maret" selected>Maret</option>
+                    <option value="April">April</option><option value="Mei">Mei</option><option value="Juni">Juni</option>
+                    <option value="Juli">Juli</option><option value="Agustus">Agustus</option><option value="September">September</option>
+                    <option value="Oktober">Oktober</option><option value="November">November</option><option value="Desember">Desember</option>
+                </select>
+                <input type="number" id="filterTahun" value="2026" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 font-semibold w-24 shadow-sm" onchange="applyFilters()">
+                <button onclick="fetchDataFromServer()" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 p-2.5 rounded-lg transition shadow-sm" title="Refresh Data">
+                    🔄
+                </button>
+            </div>
+        </div>
+
+        <div class="hanya-print text-center mb-8 border-b-2 border-black pb-4">
+            <h1 class="text-2xl font-bold uppercase">Laporan Eksekutif Kehadiran Pegawai</h1>
+            <h2 class="text-lg font-semibold" id="printJudulPeriode">Periode: -</h2>
+            <p class="text-sm">DPMPTSP Kabupaten Morowali</p>
+        </div>
+
+        <div id="loader" class="text-center py-20">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-emerald-600 mb-4"></div>
+            <p class="text-lg font-bold text-emerald-700 animate-pulse">Menyiapkan Analitik Data...</p>
+        </div>
+
+        <div id="dashboardContent" class="hidden">
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-2xl shadow-sm p-6 border-l-4 border-emerald-500 relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 opacity-10 text-emerald-500 text-6xl group-hover:scale-110 transition duration-300">📈</div>
+                    <p class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Tingkat Kehadiran</p>
+                    <h3 class="text-3xl font-black text-emerald-600" id="metricRate">0%</h3>
+                    <p class="text-xs text-gray-400 mt-2 font-medium">Dari total hari kerja tercatat</p>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm p-6 border-l-4 border-rose-500 relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 opacity-10 text-rose-500 text-6xl group-hover:scale-110 transition duration-300">⚠️</div>
+                    <p class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total Hari Alpa</p>
+                    <h3 class="text-3xl font-black text-rose-600" id="metricAlpa">0</h3>
+                    <p class="text-xs text-gray-400 mt-2 font-medium">Tanpa keterangan valid</p>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm p-6 border-l-4 border-amber-400 relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 opacity-10 text-amber-500 text-6xl group-hover:scale-110 transition duration-300">💊</div>
+                    <p class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total Hari Sakit</p>
+                    <h3 class="text-3xl font-black text-amber-500" id="metricSakit">0</h3>
+                    <p class="text-xs text-gray-400 mt-2 font-medium">Berdasarkan surat dokter</p>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm p-6 border-l-4 border-blue-500 relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 opacity-10 text-blue-500 text-6xl group-hover:scale-110 transition duration-300">✈️</div>
+                    <p class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total Hari Izin</p>
+                    <h3 class="text-3xl font-black text-blue-600" id="metricIzin">0</h3>
+                    <p class="text-xs text-gray-400 mt-2 font-medium">Cuti / Kepentingan lain</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 h-full flex flex-col">
+                    <h2 class="text-base font-bold text-gray-700 border-b border-gray-100 pb-3 mb-4">Distribusi Status Kehadiran</h2>
+                    <div class="relative flex-grow min-h-[250px] w-full">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 h-full flex flex-col">
+                    <h2 class="text-base font-bold text-gray-700 border-b border-gray-100 pb-3 mb-4">Rasio Kehadiran per Kategori Jabatan</h2>
+                    <div class="relative flex-grow min-h-[250px] w-full">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+                
+                <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 border-t-4 border-t-emerald-500 h-full flex flex-col">
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+                        <h2 class="text-base font-bold text-gray-700">🏆 Top 5 Paling Disiplin</h2>
+                        <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-1 rounded">100% Hadir</span>
+                    </div>
+                    <div class="overflow-x-auto flex-grow">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-gray-50 text-gray-500 uppercase text-xs font-bold rounded">
+                                <tr><th class="px-4 py-3 rounded-l">Nama Pegawai</th><th class="px-4 py-3 text-center">Jabatan</th><th class="px-4 py-3 text-center rounded-r">Jml Hadir</th></tr>
+                            </thead>
+                            <tbody id="tableDisiplin"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 border-t-4 border-t-rose-500 h-full flex flex-col">
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+                        <h2 class="text-base font-bold text-gray-700">⚠️ Perlu Atensi Khusus</h2>
+                        <span class="bg-rose-100 text-rose-800 text-xs font-bold px-2 py-1 rounded">Prioritas Evaluasi</span>
+                    </div>
+                    <div class="overflow-x-auto flex-grow">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-gray-50 text-gray-500 uppercase text-xs font-bold rounded">
+                                <tr><th class="px-4 py-3 rounded-l">Nama Pegawai</th><th class="px-4 py-3 text-center">Status</th><th class="px-4 py-3 text-center rounded-r">Jml Alpa</th></tr>
+                            </thead>
+                            <tbody id="tableAtensi"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+            
+            <div class="hanya-print mt-16 pr-10 text-black" style="page-break-inside: avoid;">
+                <table class="w-full text-sm">
+                    <tr>
+                        <td style="width: 65%;"></td>
+                        <td style="width: 35%; text-align: left;">
+                            <p class="mb-0" id="tanggalCetakDashboard">Bungku, ........................</p>
+                            <p class="mb-20">Mengetahui,<br>Kepala Dinas Penanaman Modal dan PTSP<br>Kabupaten Morowali,</p>
+                            <p class="font-bold underline mb-0">ELYTA GAWI, ST., MT</p>
+                            <p>Pembina Utama Muda, IV/c <br>NIP. 19761212 200212 2 006</p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('namaUser').innerText = sessionStorage.getItem('userName') || "Pimpinan";
+        
+        // MASUKKAN URL GAS ANDA DI SINI
+        const URL_GAS = "https://script.google.com/macros/s/AKfycbxNNmH8GmlkJkBxzUkItWH1a5c1BbLWRAzy1fA4agwFiFJnCh8v1rgDfCNtbrzBUIfRAg/exec";
+        
+        let rawMasterPegawai = [];
+        let rawRekapAbsen = [];
+        let pieChartInstance = null;
+        let barChartInstance = null;
+
+        function cetakLaporan() {
+            const today = new Date();
+            const bulanIndo = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+            const tanggal = today.getDate();
+            const bulan = bulanIndo[today.getMonth()];
+            const tahun = today.getFullYear();
+            
+            document.getElementById('tanggalCetakDashboard').innerText = `Bungku, ${tanggal} ${bulan} ${tahun}`;
+            window.print();
+        }
+
+        function fetchDataFromServer() {
+            document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('dashboardContent').classList.add('hidden');
+
+            fetch(URL_GAS + "?action=get_pegawai")
+                .then(res => res.json())
+                .then(dataPegawai => {
+                    rawMasterPegawai = dataPegawai;
+                    return fetch(URL_GAS + "?action=get_rekap");
+                })
+                .then(res => res.json())
+                .then(dataRekap => {
+                    rawRekapAbsen = dataRekap;
+                    
+                    document.getElementById('loader').classList.add('hidden');
+                    document.getElementById('dashboardContent').classList.remove('hidden');
+                    
+                    const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+                    Toast.fire({ icon: 'success', title: 'Data berhasil disinkronisasi' });
+
+                    applyFilters(); 
+                })
+                .catch(err => {
+                    Swal.fire('Koneksi Gagal', 'Gagal menarik data dari server Google. Periksa internet Anda.', 'error');
+                });
+        }
+
+        function applyFilters() {
+            const b = document.getElementById('filterBulan').value;
+            const t = document.getElementById('filterTahun').value;
+
+            document.getElementById('printJudulPeriode').innerText = `Periode: ${b === 'Semua' ? 'Tahun' : 'Bulan ' + b} ${t}`;
+
+            let filteredRekap = rawRekapAbsen.filter(row => row.ID_Rekap); 
+            if (b !== "Semua") filteredRekap = filteredRekap.filter(row => row.Bulan === b);
+            if (t) filteredRekap = filteredRekap.filter(row => row.Tahun == t);
+
+            let sumHadir = 0, sumSakit = 0, sumIzin = 0, sumAlpa = 0;
+            let kategoriData = { "PNS": 0, "PPPK": 0, "Outsourcing": 0 }; 
+            let hitungOrang = { "PNS": 0, "PPPK": 0, "Outsourcing": 0 }; 
+            
+            let agregatPegawai = {}; 
+
+            filteredRekap.forEach(row => {
+                const h = parseInt(row.Hadir) || 0;
+                const s = parseInt(row.Sakit) || 0;
+                const i = parseInt(row.Izin) || 0;
+                const a = parseInt(row.Alpa) || 0;
+
+                sumHadir += h; sumSakit += s; sumIzin += i; sumAlpa += a;
+
+                const peg = rawMasterPegawai.find(p => p.NIP_NIK === row.NIP_NIK);
+                const nama = peg ? peg.Nama_Lengkap : "Unknown";
+                const jabatan = peg ? peg.Jabatan : "-";
+                const kategori = peg ? (peg.Kategori.includes("PPPK") ? "PPPK" : peg.Kategori) : "Outsourcing"; 
+
+                if(kategoriData[kategori] !== undefined) {
+                    kategoriData[kategori] += h;
+                    hitungOrang[kategori] += 1;
+                }
+
+                if (!agregatPegawai[row.NIP_NIK]) {
+                    agregatPegawai[row.NIP_NIK] = { nama: nama, jabatan: jabatan, status: peg?peg.Kategori:"-", hadir: 0, alpa: 0 };
+                }
+                agregatPegawai[row.NIP_NIK].hadir += h;
+                agregatPegawai[row.NIP_NIK].alpa += a;
+            });
+
+            const totalHariKerja = sumHadir + sumSakit + sumIzin + sumAlpa;
+            const persentase = totalHariKerja > 0 ? Math.round((sumHadir / totalHariKerja) * 100) : 0;
+            
+            document.getElementById('metricRate').innerText = persentase + "%";
+            document.getElementById('metricRate').className = persentase >= 80 ? "text-3xl font-black text-emerald-600" : "text-3xl font-black text-rose-600";
+            
+            document.getElementById('metricAlpa').innerText = sumAlpa;
+            document.getElementById('metricSakit').innerText = sumSakit;
+            document.getElementById('metricIzin').innerText = sumIzin;
+
+            const avgPNS = hitungOrang["PNS"] > 0 ? (kategoriData["PNS"] / hitungOrang["PNS"]).toFixed(1) : 0;
+            const avgPPPK = hitungOrang["PPPK"] > 0 ? (kategoriData["PPPK"] / hitungOrang["PPPK"]).toFixed(1) : 0;
+            const avgOut = hitungOrang["Outsourcing"] > 0 ? (kategoriData["Outsourcing"] / hitungOrang["Outsourcing"]).toFixed(1) : 0;
+
+            drawCharts(sumHadir, sumSakit, sumIzin, sumAlpa, [avgPNS, avgPPPK, avgOut]);
+            buildLeaderboards(Object.values(agregatPegawai));
+        }
+
+        function drawCharts(h, s, i, a, barData) {
+            if(pieChartInstance) pieChartInstance.destroy();
+            const ctxPie = document.getElementById('pieChart').getContext('2d');
+            pieChartInstance = new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Hadir', 'Sakit', 'Izin', 'Alpa'],
+                    datasets: [{
+                        data: [h, s, i, a],
+                        backgroundColor: ['#10b981', '#fbbf24', '#3b82f6', '#f43f5e'],
+                        borderWidth: 0, hoverOffset: 4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, usePointStyle: true } } } }
+            });
+
+            if(barChartInstance) barChartInstance.destroy();
+            const ctxBar = document.getElementById('barChart').getContext('2d');
+            barChartInstance = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: ['PNS', 'PPPK', 'Outsourcing'],
+                    datasets: [{
+                        label: 'Rata-Rata Hari Hadir per Orang',
+                        data: barData,
+                        backgroundColor: ['#0ea5e9', '#8b5cf6', '#f59e0b'],
+                        borderRadius: 6,
+                        barPercentage: 0.6
+                    }]
+                },
+                options: { 
+                    responsive: true, maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { borderDash: [4, 4] } }, x: { grid: { display: false } } }
+                }
+            });
+        }
+
+        function buildLeaderboards(pegawaiList) {
+            const tbodyDisiplin = document.getElementById('tableDisiplin');
+            const tbodyAtensi = document.getElementById('tableAtensi');
+            tbodyDisiplin.innerHTML = ''; tbodyAtensi.innerHTML = '';
+
+            let topRajin = pegawaiList.filter(p => p.hadir > 0 && p.alpa === 0).sort((x, y) => y.hadir - x.hadir).slice(0, 5);
+            
+            if(topRajin.length === 0) {
+                tbodyDisiplin.innerHTML = `<tr><td colspan="3" class="px-4 py-6 text-center text-gray-400 italic">Belum ada data teladan bulan ini.</td></tr>`;
+            } else {
+                topRajin.forEach(p => {
+                    // PERBAIKAN: Menambahkan class whitespace-nowrap pada tag <td> bagian Jumlah Hadir
+                    tbodyDisiplin.innerHTML += `<tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="px-4 py-3 font-bold text-gray-800">${p.nama}</td>
+                        <td class="px-4 py-3 text-center text-xs text-gray-500">${p.jabatan}</td>
+                        <td class="px-4 py-3 text-center whitespace-nowrap"><span class="bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full text-xs inline-block">${p.hadir} Hari</span></td>
+                    </tr>`;
+                });
+            }
+
+            let topAlpa = pegawaiList.filter(p => p.alpa > 0).sort((x, y) => y.alpa - x.alpa).slice(0, 5);
+            
+            if(topAlpa.length === 0) {
+                tbodyAtensi.innerHTML = `<tr><td colspan="3" class="px-4 py-6 text-center text-emerald-500 font-bold italic">Luar biasa! Tidak ada pelanggaran Alpa. 🎉</td></tr>`;
+            } else {
+                topAlpa.forEach(p => {
+                    // PERBAIKAN: Menambahkan class whitespace-nowrap pada tag <td> bagian Jumlah Alpa
+                    tbodyAtensi.innerHTML += `<tr class="border-b border-gray-100 hover:bg-rose-50">
+                        <td class="px-4 py-3 font-bold text-gray-800">${p.nama}</td>
+                        <td class="px-4 py-3 text-center text-xs text-gray-500">${p.status}</td>
+                        <td class="px-4 py-3 text-center whitespace-nowrap"><span class="bg-rose-100 text-rose-800 font-bold px-3 py-1 rounded-full text-xs inline-block">${p.alpa} Hari</span></td>
+                    </tr>`;
+                });
+            }
+        }
+
+        window.onload = fetchDataFromServer;
+
+    </script>
+</body>
+</html>

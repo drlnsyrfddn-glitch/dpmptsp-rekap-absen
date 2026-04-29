@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Pegawai - DPMPTSP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        if (sessionStorage.getItem('isLoggedIn') !== 'true' || sessionStorage.getItem('userRole') !== 'Admin') { window.location.href = 'login.html'; }
+    </script>
+</head>
+<body class="bg-slate-100 text-gray-800 font-sans antialiased">
+
+    <div class="max-w-6xl mx-auto mt-8 p-4">
+        <div class="flex justify-between items-center bg-blue-900 text-white p-6 rounded-t-lg shadow-md">
+            <div>
+                <h1 class="text-2xl font-bold">Database Master Pegawai</h1>
+                <p class="text-blue-200 text-sm">Kelola data PNS, PPPK, dan Outsourcing DPMPTSP</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="index.html" class="bg-blue-700 hover:bg-blue-600 px-4 py-2 rounded font-bold transition">Kembali ke Rekap Absen</a>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-b-lg shadow-md mb-8">
+            <h2 id="formTitle" class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">Form Tambah Pegawai Baru</h2>
+            
+            <form id="formPegawai">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div><label class="block text-sm font-bold mb-1">NIP / NIK</label><input type="text" id="nip" required class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-sm font-bold mb-1">Nama Lengkap (Tanpa Gelar / Dengan Gelar)</label><input type="text" id="nama" required class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-sm font-bold mb-1">Jabatan</label><input type="text" id="jabatan" required class="w-full px-3 py-2 border rounded"></div>
+                    <div class="flex gap-4">
+                        <div class="w-1/2">
+                            <label class="block text-sm font-bold mb-1">Kategori Pegawai</label>
+                            <select id="kategori" required class="w-full px-3 py-2 border rounded">
+                                <option value="PNS">PNS</option>
+                                <option value="PPPK">PPPK</option>
+                                <option value="PPPK Paruh Waktu">PPPK Paruh Waktu</option>
+                                <option value="Outsourcing">Outsourcing</option>
+                            </select>
+                        </div>
+                        <div class="w-1/2">
+                            <label class="block text-sm font-bold mb-1">Status</label>
+                            <select id="status" required class="w-full px-3 py-2 border rounded bg-green-50">
+                                <option value="Aktif">Aktif</option>
+                                <option value="Tidak Aktif">Tidak Aktif</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between mt-6">
+                    <span id="statusMessage" class="text-sm font-bold hidden"></span>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="resetForm()" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded hidden" id="btnBatal">Batal Edit</button>
+                        <button type="submit" id="btnSubmit" class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-6 rounded">Simpan Data Pegawai</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-md mb-20">
+            <h2 class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">Daftar Pegawai Saat Ini</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left border-collapse border border-gray-300">
+                    <thead class="bg-gray-100 uppercase text-xs font-bold">
+                        <tr>
+                            <th class="border px-4 py-2 w-10 text-center">No</th>
+                            <th class="border px-4 py-2">NIP / NIK</th>
+                            <th class="border px-4 py-2">Nama Lengkap</th>
+                            <th class="border px-4 py-2">Jabatan</th>
+                            <th class="border px-4 py-2 text-center">Kategori</th>
+                            <th class="border px-4 py-2 text-center">Status</th>
+                            <th class="border px-4 py-2 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablePegawai"><tr><td colspan="7" class="text-center py-6">⏳ Memuat data pegawai...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // MASUKKAN URL GAS ANDA DI SINI
+        const URL_GAS = "https://script.google.com/macros/s/AKfycbxNNmH8GmlkJkBxzUkItWH1a5c1BbLWRAzy1fA4agwFiFJnCh8v1rgDfCNtbrzBUIfRAg/exec";
+
+        function loadPegawai() {
+            fetch(URL_GAS + "?action=get_pegawai").then(res => res.json()).then(data => {
+                const tbody = document.getElementById('tablePegawai'); tbody.innerHTML = '';
+                if(data.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6">Belum ada data pegawai.</td></tr>'; return; }
+                
+                data.forEach((row, index) => {
+                    if(!row.NIP_NIK) return;
+                    let badgeStatus = row.Status === "Aktif" ? `<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">Aktif</span>` : `<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">Tidak Aktif</span>`;
+                    
+                    tbody.innerHTML += `<tr class="hover:bg-gray-50 transition">
+                        <td class="border px-4 py-2 text-center">${index + 1}</td>
+                        <td class="border px-4 py-2 font-semibold">${row.NIP_NIK}</td>
+                        <td class="border px-4 py-2 text-blue-800 font-bold">${row.Nama_Lengkap}</td>
+                        <td class="border px-4 py-2">${row.Jabatan}</td>
+                        <td class="border px-4 py-2 text-center">${row.Kategori}</td>
+                        <td class="border px-4 py-2 text-center">${badgeStatus}</td>
+                        <td class="border px-4 py-2 text-center">
+                            <button onclick="editPegawai('${row.NIP_NIK}', '${row.Nama_Lengkap}', '${row.Jabatan}', '${row.Kategori}', '${row.Status}')" class="text-blue-500 hover:text-blue-700 mr-2 font-bold">✎ Edit</button>
+                            <button onclick="hapusPegawai('${row.NIP_NIK}')" class="text-red-500 hover:text-red-700 font-bold">🗑 Hapus</button>
+                        </td>
+                    </tr>`;
+                });
+            });
+        }
+
+        window.onload = loadPegawai;
+
+        document.getElementById('formPegawai').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmit'); const status = document.getElementById('statusMessage');
+            btn.innerText = "Menyimpan..."; btn.disabled = true; status.classList.remove('hidden'); status.innerText = "Mengirim ke database...";
+            
+            const payload = {
+                action: "simpan_pegawai",
+                nip: document.getElementById('nip').value,
+                nama: document.getElementById('nama').value,
+                jabatan: document.getElementById('jabatan').value,
+                kategori: document.getElementById('kategori').value,
+                status: document.getElementById('status').value
+            };
+
+            fetch(URL_GAS, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) })
+            .then(res => res.json()).then(data => {
+                status.innerText = "✅ " + data.message;
+                status.className = "text-sm font-bold text-green-600";
+                loadPegawai(); resetForm();
+                setTimeout(() => { status.classList.add('hidden'); }, 3000);
+            });
+        });
+
+        function editPegawai(nip, nama, jabatan, kategori, status) {
+            document.getElementById('formTitle').innerText = "✎ Edit Data Pegawai";
+            document.getElementById('formTitle').classList.add('text-amber-600');
+            document.getElementById('btnSubmit').innerText = "Update Data";
+            document.getElementById('btnBatal').classList.remove('hidden');
+            
+            // Kunci NIP agar tidak bisa diubah saat edit (karena NIP adalah kunci primary)
+            document.getElementById('nip').value = nip; document.getElementById('nip').readOnly = true; document.getElementById('nip').classList.add('bg-gray-100');
+            document.getElementById('nama').value = nama;
+            document.getElementById('jabatan').value = jabatan;
+            document.getElementById('kategori').value = kategori;
+            document.getElementById('status').value = status;
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function hapusPegawai(nip) {
+            if(confirm("AWAS! Menghapus pegawai akan menghilangkan namanya dari sistem. Anda yakin ingin menghapus NIP " + nip + "?")) {
+                fetch(URL_GAS, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: "hapus_pegawai", nip: nip }) })
+                .then(res => res.json()).then(data => {
+                    alert(data.message); loadPegawai();
+                });
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('formPegawai').reset();
+            document.getElementById('nip').readOnly = false; document.getElementById('nip').classList.remove('bg-gray-100');
+            document.getElementById('formTitle').innerText = "Form Tambah Pegawai Baru";
+            document.getElementById('formTitle').classList.remove('text-amber-600');
+            document.getElementById('btnSubmit').innerText = "Simpan Data Pegawai";
+            document.getElementById('btnSubmit').disabled = false;
+            document.getElementById('btnBatal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
