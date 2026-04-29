@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Absensi DPMPTSP - Morowali</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e40af">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Absensi DPMPTSP">
+    <link rel="apple-touch-icon" href="assets/img/morowali.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { touch-action: manipulation; background-color: #f0f9ff; }
+        .loader { border-top-color: #2563eb; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="font-sans antialiased text-gray-800 min-h-screen flex items-center justify-center bg-blue-50">
+
+    <div class="bg-white w-full max-w-md min-h-screen shadow-2xl relative flex flex-col mx-auto overflow-hidden border-x border-gray-100">
+        
+        <div class="bg-blue-800 pt-10 pb-20 px-6 rounded-b-[2rem] relative z-0 shadow-md">
+            <div class="flex items-center gap-4 mb-2">
+                <div class="bg-white p-1.5 rounded-full shadow-md shrink-0">
+                    <img src="assets/img/morowali.png" alt="Logo Pemda Morowali" id="logoPemda" onclick="resetDevice()" class="w-10 h-10 object-contain cursor-pointer">
+                </div>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+<div>
+    <h1 class="text-white text-lg font-bold tracking-widest leading-none italic" style="font-family: 'ui-sans-serif', system-ui;">
+        ABSENSI <span class="text-amber-400 not-italic">DPMPTSP</span>
+    </h1>
+    <div class="h-0.5 w-12 bg-amber-400 mt-1 rounded-full"></div> </div>
+            </div>
+        </div>
+
+        <div class="relative z-10 mx-5 -mt-14 bg-white rounded-2xl shadow-lg border border-blue-50 p-6 text-center">
+            <h2 id="clock" class="text-5xl font-light text-blue-900 tracking-tight font-mono">00:00:00</h2>
+            <div class="flex items-center justify-center gap-1.5 mt-1 mb-3">
+                <p class="text-blue-600 text-xs font-bold uppercase tracking-wider">Waktu Indonesia Tengah</p>
+                <span class="flex h-2 w-2 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
+                </span>
+            </div>
+            <div class="w-full h-px bg-blue-50 my-3"></div>
+            <p id="date" class="text-gray-500 font-semibold text-sm">Memuat tanggal...</p>
+        </div>
+
+        <div class="flex-grow px-5 pt-6 pb-8 flex flex-col gap-5">
+            
+            <div>
+                <h3 class="text-xs font-bold text-blue-800/60 uppercase tracking-wider mb-2 ml-1">Status Lokasi (GPS)</h3>
+                <div class="bg-white border border-blue-100 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+                    <div id="ikonGps" class="bg-blue-50 p-2.5 rounded-full text-blue-600">
+                        <svg class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </div>
+                    <div>
+                        <p id="teksLokasiUtama" class="text-gray-800 font-bold text-sm">Mencari Koordinat...</p>
+                        <p id="teksLokasiDetail" class="text-gray-500 text-xs mt-0.5">Memerlukan akses lokasi perangkat.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-xs font-bold text-blue-800/60 uppercase tracking-wider mb-2 ml-1">Identitas Pegawai</h3>
+                <div id="areaIdentitas" class="relative">
+                    <div class="flex justify-center py-4"><div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-8 w-8"></div></div>
+                </div>
+            </div>
+
+            <div class="mt-auto flex flex-col gap-3 pt-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="klikAbsen('Datang')" id="btnDatang" disabled class="bg-gray-300 text-gray-500 font-semibold py-4 rounded-xl flex flex-col items-center justify-center gap-2">
+                        <span class="text-sm">⏳ Memuat...</span>
+                    </button>
+                    
+                    <button onclick="klikAbsen('Pulang')" id="btnPulang" disabled class="bg-gray-300 text-gray-500 font-semibold py-4 rounded-xl flex flex-col items-center justify-center gap-2">
+                        <span class="text-sm">⏳ Memuat...</span>
+                    </button>
+                </div>
+                
+                <button onclick="klikAbsen('Tugas Luar')" id="btnTL" disabled class="w-full bg-gray-100 text-gray-400 border border-gray-200 font-semibold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mt-1">
+                    <span class="text-sm">⏳ Memuat...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. PENGATURAN SISTEM UTAMA
+        // ==========================================
+        const URL_GAS = "https://script.google.com/macros/s/AKfycbxNNmH8GmlkJkBxzUkItWH1a5c1BbLWRAzy1fA4agwFiFJnCh8v1rgDfCNtbrzBUIfRAg/exec";
+        const KANTOR_LAT = -2.4794351487237454;
+        const KANTOR_LNG = 121.93722961436306;
+        const MAX_RADIUS = 50; 
+
+        let myLat = 0, myLng = 0;
+        let jarakMeter = 999999;
+        let isGpsReady = false;
+
+        // ==========================================
+        // 2. LOGIKA JAM WITA & ATURAN TOMBOL (SOP)
+        // ==========================================
+        function updateClock() {
+            const now = new Date();
+            const optionsTime = { timeZone: 'Asia/Makassar', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            document.getElementById('clock').innerText = now.toLocaleTimeString('en-GB', optionsTime);
+            const optionsDate = { timeZone: 'Asia/Makassar', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('date').innerText = now.toLocaleDateString('id-ID', optionsDate);
+        }
+        
+        setInterval(() => {
+            updateClock();
+            if (isGpsReady) bukaGembokTombol();
+        }, 1000); 
+        updateClock();
+
+        function bukaGembokTombol() {
+            const now = new Date();
+            const jamSekarang = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Makassar', hour: '2-digit', minute: '2-digit' });
+
+            const btnDatang = document.getElementById('btnDatang');
+            const btnPulang = document.getElementById('btnPulang');
+            const btnTL = document.getElementById('btnTL');
+
+            if (jamSekarang >= "07:30" && jamSekarang <= "09:00") {
+                btnDatang.disabled = false;
+                if (jamSekarang > "08:00") {
+                    btnDatang.className = "bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-semibold py-4 rounded-xl shadow-md transition transform active:scale-95 flex flex-col items-center justify-center gap-2 border-b-4 border-amber-800";
+                    btnDatang.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="text-sm">Datang (Terlambat)</span>`;
+                } else {
+                    btnDatang.className = "bg-blue-700 hover:bg-blue-800 active:bg-blue-900 text-white font-semibold py-4 rounded-xl shadow-md transition transform active:scale-95 flex flex-col items-center justify-center gap-2 border-b-4 border-blue-900";
+                    btnDatang.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg><span class="text-sm">Absen Datang</span>`;
+                }
+            } else {
+                btnDatang.disabled = true;
+                btnDatang.className = "bg-gray-200 text-gray-500 font-semibold py-4 rounded-xl flex flex-col items-center justify-center gap-2 border border-gray-300";
+                btnDatang.innerHTML = `<span class="text-xs">🚫 Tutup (07:30-09:00)</span>`;
+            }
+
+            if (jamSekarang >= "16:00" && jamSekarang <= "17:00") {
+                btnPulang.disabled = false;
+                btnPulang.className = "bg-white border-2 border-blue-700 hover:bg-blue-50 active:bg-blue-100 text-blue-800 font-semibold py-4 rounded-xl shadow-sm transition transform active:scale-95 flex flex-col items-center justify-center gap-2";
+                btnPulang.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg><span class="text-sm">Absen Pulang</span>`;
+            } else {
+                btnPulang.disabled = true;
+                btnPulang.className = "bg-gray-200 text-gray-500 font-semibold py-4 rounded-xl flex flex-col items-center justify-center gap-2 border border-gray-300";
+                btnPulang.innerHTML = `<span class="text-xs">🚫 Tutup (16:00-17:00)</span>`;
+            }
+
+            if (jamSekarang >= "07:30" && jamSekarang <= "17:00") {
+                btnTL.disabled = false;
+                btnTL.className = "w-full bg-white hover:bg-blue-50 active:bg-blue-100 border border-blue-200 text-blue-700 font-semibold py-3.5 rounded-xl shadow-sm transition transform active:scale-95 flex items-center justify-center gap-2 mt-1";
+                btnTL.innerHTML = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg><span class="text-sm">Lapor Tugas Luar (TL)</span>`;
+            } else {
+                btnTL.disabled = true;
+                btnTL.className = "w-full bg-gray-200 text-gray-400 border border-gray-300 font-semibold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mt-1";
+                btnTL.innerHTML = `<span class="text-sm">🚫 Di luar jam dinas</span>`;
+            }
+        }
+
+        // ==========================================
+        // 3. LOGIKA GPS & HAVERSINE
+        // ==========================================
+        function initGPS() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.watchPosition(
+                    (position) => {
+                        myLat = position.coords.latitude;
+                        myLng = position.coords.longitude;
+                        jarakMeter = hitungJarak(myLat, myLng, KANTOR_LAT, KANTOR_LNG);
+                        isGpsReady = true;
+                        updateStatusUI();
+                        bukaGembokTombol();
+                    },
+                    (error) => {
+                        document.getElementById('teksLokasiUtama').innerText = "Akses GPS Ditolak!";
+                        document.getElementById('teksLokasiUtama').className = "text-red-600 font-bold text-sm";
+                        Swal.fire('GPS Mati', 'Sistem absensi membutuhkan akses lokasi Anda.', 'warning');
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            }
+        }
+
+        function hitungJarak(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; 
+            const φ1 = lat1 * Math.PI/180;
+            const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180;
+            const Δλ = (lon2-lon1) * Math.PI/180;
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return Math.floor(R * c);
+        }
+
+        function updateStatusUI() {
+            const ikon = document.getElementById('ikonGps');
+            if (jarakMeter <= MAX_RADIUS) {
+                ikon.className = "bg-emerald-100 p-2.5 rounded-full text-emerald-600";
+                ikon.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                document.getElementById('teksLokasiUtama').innerText = "Di Dalam Area Kantor";
+                document.getElementById('teksLokasiUtama').className = "text-emerald-700 font-bold text-sm";
+                document.getElementById('teksLokasiDetail').innerText = `Jarak akurasi: ${jarakMeter} meter.`;
+            } else {
+                ikon.className = "bg-rose-100 p-2.5 rounded-full text-rose-600";
+                ikon.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+                document.getElementById('teksLokasiUtama').innerText = "Di Luar Radius";
+                document.getElementById('teksLokasiUtama').className = "text-rose-700 font-bold text-sm";
+                document.getElementById('teksLokasiDetail').innerText = `Jarak Anda ${jarakMeter}m (Maks. ${MAX_RADIUS}m).`;
+            }
+        }
+
+        // ==========================================
+        // 4. BINDING & SEARCHABLE LIST
+        // ==========================================
+        window.onload = () => {
+            initGPS();
+            cekPerangkatKunci();
+        };
+
+        function cekPerangkatKunci() {
+            const area = document.getElementById('areaIdentitas');
+            const savedNip = localStorage.getItem("absen_nip");
+            const savedNama = localStorage.getItem("absen_nama");
+
+            if (savedNip && savedNama) {
+                area.innerHTML = `
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between shadow-inner">
+                    <div>
+                        <p class="text-[10px] text-blue-500 font-bold uppercase tracking-widest mb-0.5">Pegawai Terdaftar</p>
+                        <p class="text-blue-900 font-bold text-base leading-tight">${savedNama}</p>
+                        <p class="text-blue-600/70 font-mono text-xs mt-0.5">${savedNip}</p>
+                    </div>
+                    <div class="bg-green-100 p-2 rounded-full shadow-sm"><svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></div>
+                </div>`;
+            } else {
+                fetch(URL_GAS + "?action=get_pegawai")
+                .then(res => res.json())
+                .then(data => {
+                    let listHTML = '';
+                    data.forEach(p => { 
+                        if(p.NIP_NIK) {
+                            listHTML += `<div onclick="pilihKaryawan('${p.NIP_NIK}', '${p.Nama_Lengkap}')" class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 text-sm font-medium text-gray-700 transition">${p.Nama_Lengkap}</div>`; 
+                        }
+                    });
+                    area.innerHTML = `
+                    <div class="relative">
+                        <input type="text" id="searchPegawai" oninput="filterPegawai()" onfocus="tampilkanList()" placeholder="Ketik untuk mencari nama..." class="w-full bg-white border border-blue-200 text-gray-800 text-sm rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 block p-3.5 font-medium shadow-sm outline-none transition" autocomplete="off">
+                        <input type="hidden" id="pilihPegawai">
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-blue-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
+                        <div id="dropdownPegawai" class="hidden absolute z-50 w-full mt-1 bg-white border border-blue-100 rounded-xl shadow-lg max-h-48 overflow-y-auto">${listHTML}</div>
+                    </div>`;
+                });
+            }
+        }
+
+        function tampilkanList() { document.getElementById('dropdownPegawai').classList.remove('hidden'); }
+        function filterPegawai() {
+            const input = document.getElementById('searchPegawai').value.toLowerCase();
+            const items = document.getElementById('dropdownPegawai').getElementsByTagName('div');
+            for (let i = 0; i < items.length; i++) {
+                items[i].style.display = items[i].innerText.toLowerCase().includes(input) ? "" : "none";
+            }
+        }
+        function pilihKaryawan(nip, nama) {
+            document.getElementById('searchPegawai').value = nama;
+            document.getElementById('pilihPegawai').value = nip;
+            document.getElementById('dropdownPegawai').classList.add('hidden');
+        }
+
+        let ketukHitung = 0; let ketukTimer;
+        function resetDevice() {
+            ketukHitung++; clearTimeout(ketukTimer);
+            if (ketukHitung >= 5) {
+                Swal.fire({
+                    title: 'Buka Kunci Perangkat?', text: 'Hapus identitas pegawai dari HP ini.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Reset!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        localStorage.removeItem("absen_nip"); localStorage.removeItem("absen_nama");
+                        location.reload();
+                    }
+                });
+                ketukHitung = 0;
+            }
+            ketukTimer = setTimeout(() => { ketukHitung = 0; }, 2000);
+        }
+
+        // ==========================================
+        // 5. PROSES PENGIRIMAN DATA
+        // ==========================================
+        function klikAbsen(jenis) {
+            if (!isGpsReady) { Swal.fire('Tunggu Sebentar', 'Mencari koordinat presisi...', 'info'); return; }
+            let myNip = localStorage.getItem("absen_nip") || document.getElementById('pilihPegawai').value;
+            let myNama = localStorage.getItem("absen_nama") || document.getElementById('searchPegawai').value;
+            if (!myNip) { Swal.fire('Identitas Kosong', 'Pilih nama Anda terlebih dahulu.', 'warning'); return; }
+            if (jenis !== 'Tugas Luar' && jarakMeter > MAX_RADIUS) {
+                Swal.fire('Akses Ditolak', `Jarak Anda ${jarakMeter}m. Harus dalam radius ${MAX_RADIUS}m.`, 'error'); return;
+            }
+            Swal.fire({ title: 'Memproses...', text: 'Merekam jejak digital.', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
+            fetch(URL_GAS, {
+                method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: "absen_digital", nip: myNip, nama: myNama, aksi: jenis, statusJarak: jenis === 'Tugas Luar' ? "Tugas Luar" : "Valid", koordinat: `${myLat}, ${myLng}` })
+            }).then(res => res.json()).then(resData => {
+                if(resData.status === "error") { Swal.fire('Perhatian', resData.message, 'warning'); }
+                else {
+                    localStorage.setItem("absen_nip", myNip); localStorage.setItem("absen_nama", myNama);
+                    Swal.fire('Berhasil!', resData.message, 'success').then(() => { location.reload(); });
+                }
+            }).catch(() => { Swal.fire('Koneksi Gagal', 'Data gagal terkirim.', 'error'); });
+        }
+    </script>
+</body>
+</html>
