@@ -101,8 +101,9 @@
                     </div>
                     <div>
                         <label class="block text-sm font-bold mb-1">Bulan</label>
-                        <select id="bulanRekap" required class="w-full px-3 py-2 border rounded">
-                            <option value="Januari">Januari</option><option value="Februari">Februari</option><option value="Maret" selected>Maret</option>
+                        <select id="bulanRekap" required class="w-full px-3 py-2 border rounded bg-blue-50 focus:ring-2 focus:ring-blue-500 border-blue-200">
+                            <option value="" selected disabled>-- Pilih Bulan --</option>
+                            <option value="Januari">Januari</option><option value="Februari">Februari</option><option value="Maret">Maret</option>
                             <option value="April">April</option><option value="Mei">Mei</option><option value="Juni">Juni</option>
                             <option value="Juli">Juli</option><option value="Agustus">Agustus</option><option value="September">September</option>
                             <option value="Oktober">Oktober</option><option value="November">November</option><option value="Desember">Desember</option>
@@ -142,11 +143,12 @@
                         <input type="text" id="searchRekap" oninput="applyFilter()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2" placeholder="Cari Nama...">
                     </div>
 
-                    <div class="flex gap-2 items-center bg-blue-50 p-2 rounded border border-blue-100">
+                    <div class="flex gap-2 items-center bg-blue-50 p-2 rounded border border-blue-200">
                         <span class="text-sm font-bold text-blue-800 hidden md:block">Filter:</span>
-                        <select id="filterBulan" class="px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" onchange="applyFilter()">
+                        <select id="filterBulan" class="px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-blue-900" onchange="applyFilter()">
+                            <option value="" selected disabled>-- Pilih Bulan --</option>
                             <option value="Semua">Semua Bulan</option>
-                            <option value="Januari">Januari</option><option value="Februari">Februari</option><option value="Maret" selected>Maret</option>
+                            <option value="Januari">Januari</option><option value="Februari">Februari</option><option value="Maret">Maret</option>
                             <option value="April">April</option><option value="Mei">Mei</option><option value="Juni">Juni</option>
                             <option value="Juli">Juli</option><option value="Agustus">Agustus</option><option value="September">September</option>
                             <option value="Oktober">Oktober</option><option value="November">November</option><option value="Desember">Desember</option>
@@ -273,8 +275,14 @@
             loadPegawai(() => { loadRekap(); }); 
         };
 
-        // --- FUNGSI POP-UP TANGGAL CETAK ---
         async function cetakLaporan() {
+            const bulanFilter = document.getElementById('filterBulan').value;
+            // Validasi: Jangan biarkan cetak jika bulan belum dipilih
+            if (!bulanFilter) {
+                Swal.fire('Tunggu Dulu!', 'Silakan pilih bulan pada filter sebelum mencetak laporan.', 'warning');
+                return;
+            }
+
             const today = new Date();
             const bulanIndo = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
             const tglDefault = `${today.getDate()} ${bulanIndo[today.getMonth()]} ${today.getFullYear()}`;
@@ -296,7 +304,7 @@
 
             if (tanggalInput) {
                 document.getElementById('tanggalCetakLaporan').innerText = `Bungku, ${tanggalInput}`;
-                setTimeout(() => { window.print(); }, 300); // Jeda kecil untuk DOM update
+                setTimeout(() => { window.print(); }, 300); 
             }
         }
 
@@ -322,6 +330,17 @@
             
             tbody.innerHTML = '';
 
+            // PERBAIKAN: Jika bulan belum dipilih, tampilkan peringatan
+            if (!bulanFilter) {
+                judulKop.innerText = `LAPORAN REKAPITULASI ABSENSI PEGAWAI`;
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-12 text-gray-500 font-bold bg-blue-50 border-b border-blue-100 rounded-b-lg">
+                    <span class="text-3xl block mb-2">📅</span>
+                    Silakan pilih Bulan pada filter di atas terlebih dahulu untuk menampilkan data rekapitulasi.
+                </td></tr>`;
+                currentFilteredData = [];
+                return;
+            }
+
             if(bulanFilter === "Semua") {
                 judulKop.innerText = `LAPORAN REKAPITULASI ABSENSI PEGAWAI TAHUN ${tahunFilter}`;
             } else {
@@ -344,7 +363,7 @@
             currentFilteredData = filteredData; 
 
             if(filteredData.length === 0) { 
-                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-gray-500">Tidak ada data ditemukan.</td></tr>`; 
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-gray-500">Tidak ada data absen untuk bulan ${bulanFilter}.</td></tr>`; 
                 return; 
             }
             
@@ -371,7 +390,7 @@
 
         function exportKeExcel() {
             if(currentFilteredData.length === 0) {
-                Swal.fire('Tabel Kosong', 'Tidak ada data untuk diekspor ke Excel.', 'warning');
+                Swal.fire('Tabel Kosong', 'Silakan pilih bulan pada filter terlebih dahulu.', 'warning');
                 return;
             }
 
