@@ -47,6 +47,8 @@
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('userRole', data.role);
                     sessionStorage.setItem('userName', data.nama);
+                    sessionStorage.setItem('userNip', data.nip); // <--- BARIS KRUSIAL: Menyimpan NIP ke memori
+                    
                     window.location.href = data.role === "Admin" ? "index.html" : "dashboard.html";
                 } else {
                     errorMsg.innerText = data.message; errorMsg.classList.remove('hidden');
