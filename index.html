@@ -3,362 +3,412 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Admin - DPMPTSP Morowali</title>
+    <title>Admin SITARA - DPMPTSP Morowali</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-    <script>
-        if (sessionStorage.getItem('isLoggedIn') !== 'true' || sessionStorage.getItem('userRole') !== 'Admin') { window.location.href = 'login.html'; }
-        function logout() { 
-            Swal.fire({
-                title: 'Yakin ingin keluar?',
-                text: "Sesi Anda akan diakhiri.",
-                icon: 'question', showCancelButton: true,
-                confirmButtonColor: '#dc2626', cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Ya, Keluar!', cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) { sessionStorage.clear(); window.location.href = 'login.html'; }
-            });
-        }
-    </script>
     <style>
-        .hanya-print { display: none; }
         .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @media print {
-            body { background-color: white; }
-            .no-print { display: none !important; }
-            .hanya-print { display: block !important; }
-            .data-table { border-collapse: collapse !important; width: 100% !important; }
-            .data-table th, .data-table td { border: 1px solid black !important; padding: 6px !important; color: black !important; font-size: 12px; }
-            .data-table th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
-            @page { size: landscape; margin: 15mm; }
-        }
+        @media print { .no-print { display: none !important; } .hanya-print { display: block !important; } }
+        .hanya-print { display: none; }
     </style>
 </head>
-<body class="bg-slate-100 text-gray-800 font-sans antialiased">
+<body class="bg-slate-100 text-gray-800 antialiased font-sans">
 
-    <div class="hanya-print mb-6 text-black px-8 mt-4">
-        <div class="relative flex items-center justify-center border-b-4 border-black pb-4 mb-1">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Lambang_Kabupaten_Morowali.png" alt="Logo Morowali" class="absolute left-0 w-20 h-auto">
-            <div class="text-center w-full px-20">
-                <h3 class="text-xl font-bold uppercase m-0">Pemerintah Kabupaten Morowali</h3>
-                <h2 class="text-2xl font-bold uppercase m-0">Dinas Penanaman Modal dan <br>Pelayanan Terpadu Satu Pintu</h2>
-                <p class="text-sm m-0 mt-1">Alamat: Kompleks Perkantoran Fonuasingko, Bungku Tengah | Email: dpmptsp@morowalikab.go.id</p>
+    <div class="no-print max-w-7xl mx-auto mt-6 p-4">
+        <div class="flex flex-col md:flex-row justify-between items-center bg-blue-900 text-white p-6 rounded-t-2xl shadow-xl border-b-4 border-amber-400">
+            <div class="flex items-center gap-4">
+                <img src="assets/img/morowali.png" alt="Logo Morowali" class="w-12 h-auto">
+                <div>
+                    <h1 class="text-xl font-black tracking-tight">PANEL ADMINISTRASI SITARA</h1>
+                    <p class="text-blue-200 text-[10px] uppercase font-bold tracking-widest">DPMPTSP Kabupaten Morowali</p>
+                </div>
             </div>
-        </div>
-        <div class="border-b-2 border-black mt-1 mb-4"></div>
-        <h4 id="judulKopSurat" class="text-lg font-bold text-center underline mb-4">LAPORAN REKAPITULASI ABSENSI PEGAWAI</h4>
-    </div>
-
-    <div class="no-print max-w-7xl mx-auto mt-8 p-4 pb-0">
-        <div class="flex flex-col md:flex-row justify-between items-center bg-blue-900 text-white p-6 rounded-t-lg shadow-md">
-            <div>
-                <h1 class="text-2xl font-bold">Panel Kepegawaian DPMPTSP</h1>
-                <p class="text-blue-200 text-sm">Selamat datang, <span id="namaUser" class="font-bold"></span></p>
-            </div>
-            <div class="flex gap-2 items-center mt-4 md:mt-0">
-                <button id="btnExcel" onclick="exportKeExcel()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-bold transition flex items-center shadow text-sm">Unduh Excel</button>
-                <button id="btnCetak" onclick="cetakLaporan()" class="bg-amber-500 hover:bg-amber-600 px-4 py-2 rounded font-bold transition flex items-center shadow text-sm">Cetak Laporan</button>
-                <button onclick="logout()" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-bold transition shadow ml-2 text-sm">Keluar</button>
+            <div class="flex gap-2 mt-4 md:mt-0">
+                <button onclick="window.print()" class="bg-amber-500 hover:bg-amber-600 px-4 py-2 rounded-lg font-bold text-xs transition shadow-md">Cetak Laporan</button>
+                <button onclick="sessionStorage.clear(); window.location.href='login.html'" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg font-bold text-xs transition shadow-md">Keluar</button>
             </div>
         </div>
 
-        <div class="bg-white border-b border-gray-200 shadow-sm px-6 py-3 flex space-x-2">
-            <button onclick="switchTab('rekap')" id="tab-rekap" class="px-4 py-2 font-bold rounded-md bg-blue-100 text-blue-800 transition text-sm">📝 Rekap Absen</button>
-            <button onclick="switchTab('pegawai')" id="tab-pegawai" class="px-4 py-2 font-bold rounded-md text-gray-500 hover:bg-gray-100 transition text-sm">👥 Master Pegawai</button>
-            <button onclick="switchTab('monitoring')" id="tab-monitoring" class="px-4 py-2 font-bold rounded-md text-gray-500 hover:bg-gray-100 transition text-sm">📊 Monitoring Digital</button>
+        <div class="bg-white border-b px-6 py-2 flex space-x-2 shadow-sm">
+            <button onclick="switchTab('rekap')" id="tab-rekap" class="px-4 py-2 font-bold rounded-lg bg-blue-100 text-blue-800 text-xs transition">📝 REKAP ABSEN</button>
+            <button onclick="switchTab('pegawai')" id="tab-pegawai" class="px-4 py-2 font-bold rounded-lg text-gray-500 hover:bg-gray-100 text-xs transition">👥 MASTER PEGAWAI</button>
+            <button onclick="switchTab('monitoring')" id="tab-monitoring" class="px-4 py-2 font-bold rounded-lg text-gray-500 hover:bg-gray-100 text-xs transition">📊 MONITORING LOG</button>
         </div>
     </div>
 
-    <div id="content-rekap" class="max-w-7xl mx-auto px-4 print:px-8 print:max-w-full">
-        <div class="bg-white p-6 shadow-md mb-8 no-print rounded-b-lg">
-            <h2 id="formTitleRekap" class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">Input Rekap Absensi</h2>
-            <form id="formAbsen">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                    <div class="md:col-span-1">
-                        <label class="block text-sm font-bold mb-1">Nama Pegawai</label>
-                        <select id="nipRekap" required class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500" onchange="autoFillNip()"><option value="">-- Pilih Pegawai --</option></select>
-                    </div>
-                    <div class="md:col-span-1">
-                        <label class="block text-sm font-bold mb-1 text-gray-500">NIP / NIK</label>
-                        <input type="text" id="nipPegawaiAuto" readonly class="w-full px-3 py-2 border rounded bg-gray-100 text-gray-600" placeholder="NIP terisi...">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold mb-1">Bulan</label>
-                        <select id="bulanRekap" required class="w-full px-3 py-2 border rounded">
-                            <option value="Januari">Januari</option><option value="Februari">Februari</option><option value="Maret">Maret</option>
-                            <option value="April">April</option><option value="Mei">Mei</option><option value="Juni">Juni</option>
-                            <option value="Juli">Juli</option><option value="Agustus">Agustus</option><option value="September">September</option>
-                            <option value="Oktober">Oktober</option><option value="November">November</option><option value="Desember">Desember</option>
-                        </select>
-                    </div>
-                    <div><label class="block text-sm font-bold mb-1">Tahun</label><input type="number" id="tahunRekap" required value="2026" class="w-full px-3 py-2 border rounded"></div>
+    <div id="content-rekap" class="max-w-7xl mx-auto px-4 pb-20 animate-fade-in">
+        <div class="bg-white p-6 rounded-xl shadow-md border mb-6 no-print">
+            <h2 class="text-sm font-black text-gray-700 mb-4 uppercase border-b pb-2">Input / Edit Rekap Manual</h2>
+            <form id="formRekapManual" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="md:col-span-1">
+                    <label class="block text-[10px] font-bold mb-1">Nama Pegawai</label>
+                    <select id="nipRekap" required class="w-full p-2 border rounded-lg text-sm font-bold bg-gray-50" onchange="autoNip()">
+                        <option value="">-- Pilih Pegawai --</option>
+                    </select>
                 </div>
-                <div class="grid grid-cols-4 gap-4 mb-4 bg-slate-50 p-4 rounded border">
-                    <div><label class="block text-green-700 text-xs font-bold mb-1">Hadir</label><input type="number" id="hadir" required min="0" value="0" class="w-full px-2 py-1 border rounded text-center"></div>
-                    <div><label class="block text-yellow-600 text-xs font-bold mb-1">Sakit</label><input type="number" id="sakit" required min="0" value="0" class="w-full px-2 py-1 border rounded text-center"></div>
-                    <div><label class="block text-blue-600 text-xs font-bold mb-1">Izin</label><input type="number" id="izin" required min="0" value="0" class="w-full px-2 py-1 border rounded text-center"></div>
-                    <div><label class="block text-red-600 text-xs font-bold mb-1">Alpa</label><input type="number" id="alpa" required min="0" value="0" class="w-full px-2 py-1 border rounded text-center"></div>
+                <div>
+                    <label class="block text-[10px] font-bold mb-1 text-gray-400">NIP/NIK</label>
+                    <input type="text" id="nipDisplay" readonly class="w-full p-2 border rounded-lg text-sm bg-slate-100 text-gray-500 font-mono">
                 </div>
-                <div class="mb-4"><label class="block text-sm font-bold mb-1">Keterangan</label><input type="text" id="keteranganRekap" class="w-full px-3 py-2 border rounded" placeholder="-"></div>
-                <div class="flex justify-end gap-2">
-                    <button type="button" id="btnBatalRekap" onclick="resetFormRekap()" class="bg-gray-400 text-white px-4 py-2 rounded font-bold hidden">Batal</button>
-                    <button type="submit" id="btnSubmitRekap" class="bg-blue-800 text-white px-6 py-2 rounded font-bold shadow">Simpan Data Absen</button>
+                <div>
+                    <label class="block text-[10px] font-bold mb-1">Bulan</label>
+                    <select id="bulanInput" required class="w-full p-2 border rounded-lg text-sm font-bold border-blue-300 bg-blue-50">
+                        <option value="" disabled selected>-- Pilih Bulan --</option>
+                        <option value="Januari">Januari</option><option value="Februari">Februari</option>
+                        <option value="Maret">Maret</option><option value="April">April</option>
+                        <option value="Mei">Mei</option><option value="Juni">Juni</option>
+                        <option value="Juli">Juli</option><option value="Agustus">Agustus</option>
+                        <option value="September">September</option><option value="Oktober">Oktober</option>
+                        <option value="November">November</option><option value="Desember">Desember</option>
+                    </select>
                 </div>
+                <div class="flex items-end gap-2">
+                    <div class="w-full">
+                        <label class="block text-[10px] font-bold mb-1">Tahun</label>
+                        <input type="number" id="tahunInput" value="2026" required class="w-full p-2 border rounded-lg text-sm font-bold">
+                    </div>
+                </div>
+                <div class="md:col-span-4 grid grid-cols-4 gap-2 bg-slate-50 p-3 rounded-lg border">
+                    <div class="text-center"><label class="block text-[9px] font-bold text-blue-600">HADIR</label><input type="number" id="h" value="0" min="0" class="w-full p-1 border rounded text-center font-bold"></div>
+                    <div class="text-center"><label class="block text-[9px] font-bold text-amber-600">SAKIT</label><input type="number" id="s" value="0" min="0" class="w-full p-1 border rounded text-center font-bold"></div>
+                    <div class="text-center"><label class="block text-[9px] font-bold text-indigo-600">IZIN</label><input type="number" id="i" value="0" min="0" class="w-full p-1 border rounded text-center font-bold"></div>
+                    <div class="text-center"><label class="block text-[9px] font-bold text-red-600">ALPA</label><input type="number" id="a" value="0" min="0" class="w-full p-1 border rounded text-center font-bold"></div>
+                </div>
+                <div class="md:col-span-3">
+                    <input type="text" id="ketManual" placeholder="Tambahkan keterangan..." class="w-full p-2 border rounded-lg text-sm">
+                </div>
+                <button type="submit" class="bg-blue-800 text-white font-bold py-2 rounded-lg text-sm shadow-md hover:bg-blue-900 transition">Simpan Rekap</button>
             </form>
         </div>
 
-        <div class="bg-white p-6 rounded-lg shadow-md border mb-20">
-            <div class="flex flex-col md:flex-row justify-between items-center mb-4 border-b pb-4 no-print gap-4">
-                <div class="flex gap-4 items-center w-full md:w-auto">
-                    <h2 class="text-lg font-bold text-gray-700">Preview Data Rekapitulasi</h2>
-                    <button onclick="generateRekapOtomatis()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-bold shadow-sm flex items-center transition">
-                        <span class="mr-1">⚡</span> Sinkronisasi Otomatis
-                    </button>
-                </div>
-                <div class="flex gap-2 items-center justify-end w-full md:w-auto">
-                    <select id="filterBulan" onchange="applyFilter()" class="border p-1 text-sm rounded font-bold text-blue-900">
-                        <option value="" selected disabled>-- Pilih Bulan --</option>
-                        <option value="Semua">Semua Bulan</option>
-                        <option value="Januari">Januari</option><option value="Februari">Februari</option><option value="Maret">Maret</option>
-                        <option value="April">April</option><option value="Mei">Mei</option><option value="Juni">Juni</option>
-                        <option value="Juli">Juli</option><option value="Agustus">Agustus</option><option value="September">September</option>
-                        <option value="Oktober">Oktober</option><option value="November">November</option><option value="Desember">Desember</option>
+        <div class="bg-white p-6 rounded-xl shadow-md border">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 border-b pb-4 gap-4">
+                <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest">Laporan Rekapitulasi Bulanan</h2>
+                <div class="flex gap-2 items-center w-full md:w-auto">
+                    <select id="filterBulan" onchange="loadRekap()" class="text-xs font-bold border-2 border-blue-300 rounded-lg p-2 bg-blue-50 text-blue-900 w-full md:w-auto outline-none">
+                        <option value="" disabled selected>-- Pilih Bulan --</option>
+                        <option value="Januari">Januari</option><option value="Februari">Februari</option>
+                        <option value="Maret">Maret</option><option value="April">April</option>
+                        <option value="Mei">Mei</option><option value="Juni">Juni</option>
+                        <option value="Juli">Juli</option><option value="Agustus">Agustus</option>
+                        <option value="September">September</option><option value="Oktober">Oktober</option>
+                        <option value="November">November</option><option value="Desember">Desember</option>
                     </select>
-                    <input type="number" id="filterTahun" value="2026" onchange="applyFilter()" class="border p-1 text-sm rounded w-20">
+                    <input type="number" id="filterTahun" value="2026" class="border-2 p-2 rounded-lg text-xs font-bold w-20" onchange="loadRekap()">
+                    <button onclick="generateRekapOtomatis()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-[10px] font-bold shadow-md transition whitespace-nowrap">⚡ SINKRON OTOMATIS</button>
                 </div>
             </div>
             <div class="overflow-x-auto">
-                <table class="data-table w-full text-sm text-left border-collapse border border-gray-300">
-                    <thead class="bg-gray-100 uppercase text-xs font-bold">
-                        <tr>
-                            <th class="border px-4 py-2">Nama Pegawai / NIP</th>
-                            <th class="border px-4 py-2 text-center">Bulan</th><th class="border px-4 py-2 text-center">Tahun</th>
-                            <th class="border px-4 py-2 text-center">H</th><th class="border px-4 py-2 text-center">S</th><th class="border px-4 py-2 text-center">I</th>
-                            <th class="border px-4 py-2 text-center">A</th><th class="border px-4 py-2">Ket</th><th class="border px-4 py-2 text-center no-print">Aksi</th>
-                        </tr>
+                <table class="w-full text-xs text-left border-collapse">
+                    <thead class="bg-slate-50 uppercase font-black text-slate-500 tracking-tighter border-b">
+                        <tr><th class="px-4 py-3">Nama Pegawai</th><th class="px-4 py-3 text-center">Bulan</th><th class="px-4 py-3 text-center">H</th><th class="px-4 py-3 text-center">S</th><th class="px-4 py-3 text-center">I</th><th class="px-4 py-3 text-center">A</th><th class="px-4 py-3">Ket</th><th class="px-4 py-3 text-center no-print">Aksi</th></tr>
                     </thead>
-                    <tbody id="tableBodyRekap"></tbody>
+                    <tbody id="tableBodyRekap">
+                        <tr><td colspan="8" class="text-center py-10 text-gray-400 font-bold italic">Silakan pilih bulan terlebih dahulu pada filter di atas.</td></tr>
+                    </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <div id="content-pegawai" class="max-w-7xl mx-auto px-4 hidden">
-        <div class="bg-white p-6 shadow-md mb-8 rounded-b-lg border-t-4 border-blue-900">
-            <h2 id="formTitlePegawai" class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">Form Data Pegawai</h2>
-            <form id="formPegawai">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label class="block text-sm font-bold mb-1">NIP / NIK</label><input type="text" id="nipMaster" required class="w-full px-3 py-2 border rounded"></div>
-                    <div><label class="block text-sm font-bold mb-1">Nama Lengkap</label><input type="text" id="namaMaster" required class="w-full px-3 py-2 border rounded"></div>
-                    <div><label class="block text-sm font-bold mb-1">Jabatan</label><input type="text" id="jabatanMaster" required class="w-full px-3 py-2 border rounded"></div>
-                    <div class="flex gap-2">
-                        <select id="kategoriMaster" class="w-1/2 border p-2 rounded"><option value="PNS">PNS</option><option value="PPPK">PPPK</option><option value="Outsourcing">Outsourcing</option></select>
-                        <select id="statusMaster" class="w-1/2 border p-2 rounded"><option value="Aktif">Aktif</option><option value="Tidak Aktif">Tidak Aktif</option></select>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-2 mt-4">
-                    <button type="button" id="btnBatalPegawai" onclick="resetFormPegawai()" class="bg-gray-400 text-white px-4 py-2 rounded hidden">Batal</button>
-                    <button type="submit" id="btnSubmitPegawai" class="bg-blue-800 text-white px-6 py-2 rounded font-bold">Simpan</button>
+    <div id="content-pegawai" class="max-w-7xl mx-auto px-4 hidden animate-fade-in pb-20">
+        <div class="bg-white p-6 rounded-xl shadow-md border mb-6">
+            <h2 class="text-sm font-black text-gray-700 mb-4 uppercase">Manajemen Data Pegawai</h2>
+            <form id="formPegawai" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <input type="text" id="nipM" placeholder="NIP / NIK" required class="p-2 border rounded-lg text-sm font-mono focus:ring-2 outline-none">
+                <input type="text" id="namaM" placeholder="Nama Lengkap" required class="p-2 border rounded-lg text-sm font-bold focus:ring-2 outline-none">
+                <input type="text" id="jabM" placeholder="Jabatan" required class="p-2 border rounded-lg text-sm focus:ring-2 outline-none">
+                <div class="flex gap-2">
+                    <select id="statM" class="w-full p-2 border rounded-lg text-sm font-bold"><option value="Aktif">Aktif</option><option value="Tidak Aktif">Tidak Aktif</option></select>
+                    <button type="submit" class="bg-blue-800 hover:bg-blue-900 text-white px-4 rounded-lg font-bold text-xs shadow-md transition">Simpan</button>
                 </div>
             </form>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-md border">
-            <h2 class="font-bold border-b pb-2 mb-4">Daftar Pegawai DPMPTSP</h2>
-            <table class="w-full text-sm text-left border-collapse border border-gray-300">
-                <thead class="bg-gray-100 uppercase text-xs"><tr><th class="border px-4 py-2 text-center w-10">No</th><th class="border px-4 py-2">NIP</th><th class="border px-4 py-2">Nama</th><th class="border px-4 py-2">Jabatan</th><th class="border px-4 py-2 text-center">Status</th><th class="border px-4 py-2 text-center">Aksi</th></tr></thead>
+        <div class="bg-white rounded-xl shadow-md border overflow-hidden">
+            <table class="w-full text-xs text-left">
+                <thead class="bg-slate-50 font-bold uppercase text-slate-500 tracking-tighter border-b">
+                    <tr><th class="px-6 py-4">NIP</th><th class="px-6 py-4">Nama Pegawai</th><th class="px-6 py-4">Jabatan</th><th class="px-6 py-4 text-center">Status</th><th class="px-6 py-4 text-center">Aksi</th></tr>
+                </thead>
                 <tbody id="tableBodyPegawai"></tbody>
             </table>
         </div>
     </div>
 
-    <div id="content-monitoring" class="max-w-7xl mx-auto px-4 hidden animate-fade-in">
-        <div class="mb-6 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-lg shadow-sm border gap-4">
-            <div><h2 class="text-2xl font-bold text-gray-800">Monitoring Absensi Real-Time</h2><p class="text-gray-500 text-sm">Lacak jejak kehadiran GPS pegawai hari ini.</p></div>
-            <div class="flex items-center gap-3">
-                <input type="date" id="filterTanggalMonitoring" onchange="loadLogHarian()" class="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg font-bold border-blue-200 border">
-                <button onclick="loadLogHarian()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm shadow-md font-bold">Refresh</button>
+    <div id="content-monitoring" class="max-w-7xl mx-auto px-4 hidden animate-fade-in pb-20">
+        <div class="bg-white p-6 rounded-xl shadow-md border">
+            <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <h2 class="font-black text-slate-800 uppercase text-sm tracking-widest">Log Harian Digital (V4)</h2>
+                <input type="date" id="filterTgl" onchange="loadMonitoring()" class="bg-blue-50 border-2 border-blue-300 p-2 rounded-lg font-bold text-blue-700 text-xs outline-none focus:ring-2">
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left border-collapse">
+                    <thead class="bg-slate-50 uppercase font-black text-slate-400 tracking-tighter border-b">
+                        <tr><th class="px-6 py-4">Pegawai</th><th class="px-6 py-4 text-center">Jam Datang</th><th class="px-6 py-4 text-center">Jam Pulang</th><th class="px-6 py-4 text-center">Jarak</th><th class="px-6 py-4 text-center">Peta</th></tr>
+                    </thead>
+                    <tbody id="tableBodyMonitoring"></tbody>
+                </table>
             </div>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-blue-600"><p class="text-gray-400 text-xs font-bold uppercase tracking-tighter">Sudah Absen</p><h3 id="stat-hadir" class="text-3xl font-black text-gray-800">0</h3></div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-amber-500"><p class="text-gray-400 text-xs font-bold uppercase tracking-tighter">Terlambat</p><h3 id="stat-telat" class="text-3xl font-black text-gray-800">0</h3></div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-rose-500"><p class="text-gray-400 text-xs font-bold uppercase tracking-tighter">Belum Hadir</p><h3 id="stat-belum" class="text-3xl font-black text-gray-800">0</h3></div>
-        </div>
-        <div class="bg-white rounded-xl shadow-md border overflow-hidden mb-20">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-slate-50 text-[10px] uppercase font-black text-gray-500 tracking-widest">
-                    <tr><th class="px-6 py-4">Waktu</th><th class="px-6 py-4">Nama Pegawai</th><th class="px-6 py-4 text-center">Status</th><th class="px-6 py-4">Jarak</th><th class="px-6 py-4 text-center">Lokasi</th></tr>
-                </thead>
-                <tbody id="tableBodyMonitoring" class="divide-y divide-gray-100"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="hanya-print mt-10 pr-12 text-black">
-        <table class="w-full border-none">
-            <tr>
-                <td style="width: 60%;"></td>
-                <td style="width: 40%; text-align: left;">
-                    <p id="tanggalCetakLaporan">Bungku, ........................</p>
-                    <p class="mb-20 font-bold">Mengetahui,<br>Kepala Dinas Penanaman Modal dan PTSP</p>
-                    <p class="font-bold underline mb-0">ELYTA GAWI, ST., MT</p>
-                    <p>NIP. 19761212 200212 2 006</p>
-                </td>
-            </tr>
-        </table>
     </div>
 
     <script>
-        document.getElementById('namaUser').innerText = sessionStorage.getItem('userName');
+        // PASTIKAN MENGGUNAKAN LINK DEPLOY V4 BAPAK
         const URL_GAS = "https://script.google.com/macros/s/AKfycbxNNmH8GmlkJkBxzUkItWH1a5c1BbLWRAzy1fA4agwFiFJnCh8v1rgDfCNtbrzBUIfRAg/exec";
-        
         let masterPegawai = [];
-        let rawDataRekap = [];
-        document.getElementById('filterTanggalMonitoring').value = new Date().toISOString().split('T')[0];
+        
+        // Set tanggal hari ini sebagai default di tab monitoring
+        document.getElementById('filterTgl').value = new Date().toISOString().split('T')[0];
 
         function switchTab(tab) {
             document.getElementById('content-rekap').classList.add('hidden');
             document.getElementById('content-pegawai').classList.add('hidden');
             document.getElementById('content-monitoring').classList.add('hidden');
-            document.querySelectorAll('[id^="tab-"]').forEach(el => el.className = "px-4 py-2 font-bold rounded-md text-gray-500 hover:bg-gray-100 transition text-sm");
+            
+            // Reset style semua tombol tab
+            ['rekap', 'pegawai', 'monitoring'].forEach(t => {
+                document.getElementById('tab-' + t).className = "px-4 py-2 font-bold rounded-lg text-gray-500 hover:bg-gray-100 text-xs transition";
+            });
+            
+            // Aktifkan tab terpilih
             document.getElementById('content-' + tab).classList.remove('hidden');
-            document.getElementById('tab-' + tab).className = "px-4 py-2 font-bold rounded-md bg-blue-100 text-blue-800 transition text-sm";
-            if (tab === 'monitoring') loadLogHarian();
-            if (tab === 'rekap') { document.getElementById('btnCetak').classList.remove('hidden'); document.getElementById('btnExcel').classList.remove('hidden'); }
-            else { document.getElementById('btnCetak').classList.add('hidden'); document.getElementById('btnExcel').classList.add('hidden'); }
+            document.getElementById('tab-' + tab).className = "px-4 py-2 font-bold rounded-lg bg-blue-100 text-blue-800 text-xs transition";
+            
+            if(tab === 'monitoring') loadMonitoring();
+            if(tab === 'pegawai') renderTabelPegawai();
         }
 
-        window.onload = () => { loadPegawai(() => { loadRekap(); }); };
+        window.onload = () => { 
+            loadPegawai(); 
+            // Tidak perlu memanggil loadRekap() otomatis agar placeholder pesan muncul dulu
+        };
 
-        function autoFillNip() { document.getElementById('nipPegawaiAuto').value = document.getElementById('nipRekap').value; }
-        function loadRekap() { fetch(URL_GAS + "?action=get_rekap").then(res => res.json()).then(data => { rawDataRekap = data; applyFilter(); }); }
-        
-        function applyFilter() {
-            const bulan = document.getElementById('filterBulan').value;
-            const tahun = document.getElementById('filterTahun').value;
+        function loadPegawai() {
+            fetch(URL_GAS + "?action=get_pegawai")
+            .then(r => r.json())
+            .then(data => {
+                masterPegawai = data;
+                const sel = document.getElementById('nipRekap');
+                sel.innerHTML = '<option value="">-- Pilih Pegawai --</option>';
+                data.filter(p => p.Status === "Aktif").forEach(p => { 
+                    sel.innerHTML += `<option value="${p.NIP_NIK}">${p.Nama_Lengkap}</option>`; 
+                });
+                renderTabelPegawai();
+            });
+        }
+
+        function autoNip() { 
+            document.getElementById('nipDisplay').value = document.getElementById('nipRekap').value; 
+        }
+
+        async function loadRekap() {
+            const bln = document.getElementById('filterBulan').value;
+            const thn = document.getElementById('filterTahun').value;
             const tbody = document.getElementById('tableBodyRekap');
-            tbody.innerHTML = '';
-            if(!bulan) { tbody.innerHTML = '<tr><td colspan="9" class="text-center py-10 font-bold">Pilih filter bulan...</td></tr>'; return; }
             
-            let data = rawDataRekap.filter(r => (bulan === "Semua" || r.Bulan === bulan) && String(r.Tahun) === String(tahun));
-            data.forEach(r => {
-                // PERBAIKAN: Perbandingan NIP dengan pembersihan spasi
-                const peg = masterPegawai.find(p => String(p.NIP_NIK).replace(/\s+/g, '') === String(r.NIP_NIK).replace(/\s+/g, ''));
+            // LOGIKA BARU: Jika bulan belum dipilih, hentikan proses (return)
+            if (!bln) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-gray-400 font-bold italic">Silakan pilih bulan terlebih dahulu pada filter di atas.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-blue-600 font-bold animate-pulse">Memuat data rekapitulasi...</td></tr>';
+
+            try {
+                const res = await fetch(URL_GAS + "?action=get_rekap");
+                const data = await res.json();
+                
+                tbody.innerHTML = '';
+                const filteredData = data.filter(r => r.Bulan === bln && String(r.Tahun) === String(thn));
+
+                if (filteredData.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-gray-400 font-bold italic">Belum ada data rekap untuk periode ini.</td></tr>';
+                    return;
+                }
+
+                filteredData.forEach(r => {
+                    const p = masterPegawai.find(x => String(x.NIP_NIK).replace(/\s+/g,'') === String(r.NIP_NIK).replace(/\s+/g,''));
+                    tbody.innerHTML += `
+                        <tr class="border-b hover:bg-slate-50 transition">
+                            <td class="px-4 py-3 font-bold text-slate-700">${p ? p.Nama_Lengkap : 'Identitas Mismatch'}<br><span class="text-[9px] text-slate-300 font-mono">${r.NIP_NIK}</span></td>
+                            <td class="px-4 py-3 text-center font-bold text-slate-400">${r.Bulan}</td>
+                            <td class="px-4 py-3 text-center font-black text-blue-700">${r.Hadir}</td>
+                            <td class="px-4 py-3 text-center text-amber-600">${r.Sakit}</td>
+                            <td class="px-4 py-3 text-center text-indigo-600">${r.Izin}</td>
+                            <td class="px-4 py-3 text-center font-black text-red-600">${r.Alpa}</td>
+                            <td class="px-4 py-3 text-[10px] italic text-slate-400 leading-tight">${r.Keterangan || '-'}</td>
+                            <td class="px-4 py-3 text-center no-print">
+                                <button onclick="editRekap('${r.NIP_NIK}','${r.Hadir}','${r.Sakit}','${r.Izin}','${r.Alpa}','${r.Keterangan}')" class="text-blue-500 font-bold hover:text-blue-700">✎ Edit</button>
+                            </td>
+                        </tr>`;
+                });
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-500 font-bold">Gagal mengambil data dari server. Periksa koneksi internet Anda.</td></tr>';
+            }
+        }
+
+        function renderTabelPegawai() {
+            const tbody = document.getElementById('tableBodyPegawai');
+            tbody.innerHTML = '';
+            masterPegawai.forEach(p => {
                 tbody.innerHTML += `
-                    <tr class="hover:bg-gray-50 border-b">
-                        <td class="border px-4 py-2 font-bold">${peg ? peg.Nama_Lengkap : 'Identitas Mismatch'}<br><span class="text-[10px] text-gray-400 font-mono">${r.NIP_NIK}</span></td>
-                        <td class="border px-4 py-2 text-center">${r.Bulan}</td>
-                        <td class="border px-4 py-2 text-center">${r.Tahun}</td>
-                        <td class="border px-4 py-2 text-center font-bold text-blue-700">${r.Hadir}</td>
-                        <td class="border px-4 py-2 text-center">${r.Sakit}</td>
-                        <td class="border px-4 py-2 text-center">${r.Izin}</td>
-                        <td class="border px-4 py-2 text-center text-red-600 font-bold">${r.Alpa}</td>
-                        <td class="border px-4 py-2 text-[10px] italic leading-tight text-gray-500">${r.Keterangan || '-'}</td>
-                        <td class="border px-4 py-2 text-center no-print">
-                            <button onclick="editRekap('${r.NIP_NIK}', '${r.Bulan}', '${r.Tahun}', '${r.Hadir}', '${r.Sakit}', '${r.Izin}', '${r.Alpa}', '${r.Keterangan}')" class="text-blue-600 mr-2 font-bold text-xs">✎ Edit</button>
+                    <tr class="border-b hover:bg-slate-50 transition">
+                        <td class="px-6 py-4 font-mono text-[10px] text-slate-400">${p.NIP_NIK}</td>
+                        <td class="px-6 py-4 font-black text-slate-700 text-sm">${p.Nama_Lengkap}</td>
+                        <td class="px-6 py-4 text-slate-500">${p.Jabatan}</td>
+                        <td class="px-6 py-4 text-center"><span class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${p.Status === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">${p.Status}</span></td>
+                        <td class="px-6 py-4 text-center">
+                            <button onclick="editPegawai('${p.NIP_NIK}','${p.Nama_Lengkap}','${p.Jabatan}','${p.Status}')" class="text-blue-600 font-bold text-xs hover:underline">Edit</button>
                         </td>
                     </tr>`;
             });
         }
 
-        function generateRekapOtomatis() {
-            const bulan = document.getElementById('filterBulan').value;
-            const tahun = document.getElementById('filterTahun').value;
-            if (!bulan || bulan === "Semua") { Swal.fire('Filter Belum Dipilih', 'Pilih bulan spesifik di sebelah kanan terlebih dahulu.', 'warning'); return; }
+        async function loadMonitoring() {
+            const tgl = document.getElementById('filterTgl').value;
+            const tbody = document.getElementById('tableBodyMonitoring');
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 font-bold animate-pulse text-blue-900">Menyambungkan Ke Server...</td></tr>';
+            
+            try {
+                const res = await fetch(URL_GAS + "?action=get_log_harian");
+                const logs = await res.json();
+                
+                tbody.innerHTML = '';
+                const filteredLogs = logs.filter(l => String(l.Tanggal).replace(/'/g,"") === tgl);
 
-            Swal.fire({
-                title: `Sinkronisasi Mei 2026`,
-                text: "Masukkan total hari kerja yang SUDAH BERJALAN di bulan ini (misal: hari ini tgl 13, masukkan 9):",
-                input: 'number',
-                inputAttributes: { min: 1, max: 31, required: true },
-                showCancelButton: true,
-                confirmButtonText: 'Mulai',
-                showLoaderOnConfirm: true,
-                preConfirm: (hariKerja) => {
-                    const payload = { action: "generate_rekap", bulan: bulan, tahun: tahun, hariKerja: hariKerja };
-                    return fetch(URL_GAS, { method: 'POST', body: JSON.stringify(payload) }).then(res => res.json());
-                },
-                allowOutsideClick: () => !Swal.isLoading()
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    if(result.value.status === "success") {
-                        Swal.fire('Berhasil!', result.value.message, 'success');
-                        loadRekap();
-                    } else {
-                        Swal.fire('Gagal', result.value.message, 'error');
-                    }
+                if(filteredLogs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-gray-400 font-bold italic">Belum ada aktivitas absensi pada tanggal ini.</td></tr>';
+                    return;
                 }
-            });
+
+                filteredLogs.forEach(l => {
+                    const late = l.Aksi.includes("Terlambat");
+                    tbody.innerHTML += `
+                        <tr class="border-b hover:bg-blue-50 transition">
+                            <td class="px-6 py-4 font-black text-slate-700">${l.Nama}<br><span class="text-[9px] text-slate-400 font-mono">${l.NIP}</span></td>
+                            <td class="px-6 py-4 text-center"><span class="px-3 py-1.5 rounded-full text-[10px] font-black ${late ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}">${l.Jam_Datang}</span></td>
+                            <td class="px-6 py-4 text-center"><span class="px-3 py-1.5 rounded-full text-[10px] font-black ${l.Jam_Pulang === '-' ? 'bg-slate-100 text-slate-400' : 'bg-blue-100 text-blue-700'}">${l.Jam_Pulang}</span></td>
+                            <td class="px-6 py-4 text-center text-[10px] font-bold text-slate-500 uppercase">${l.Status_Jarak}</td>
+                            <td class="px-6 py-4 text-center"><a href="https://www.google.com/maps?q=$${l.Koordinat}" target="_blank" class="text-blue-600 font-bold underline text-xs">Peta</a></td>
+                        </tr>`;
+                });
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-red-500 font-bold">Gagal memuat Log Harian.</td></tr>';
+            }
         }
 
-        document.getElementById('formAbsen').addEventListener('submit', function(e) {
+        // FUNGSI UNTUK MENGISI FORM EDIT DARI TABEL
+        function editRekap(nip, h, s, i, a, ket) {
+            const bln = document.getElementById('filterBulan').value;
+            const thn = document.getElementById('filterTahun').value;
+            document.getElementById('nipRekap').value = nip;
+            autoNip();
+            document.getElementById('bulanInput').value = bln;
+            document.getElementById('tahunInput').value = thn;
+            document.getElementById('h').value = h;
+            document.getElementById('s').value = s;
+            document.getElementById('i').value = i;
+            document.getElementById('a').value = a;
+            document.getElementById('ketManual').value = ket || "";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function editPegawai(nip, nama, jab, stat) {
+            document.getElementById('nipM').value = nip;
+            document.getElementById('nipM').readOnly = true;
+            document.getElementById('nipM').classList.add('bg-slate-100');
+            document.getElementById('namaM').value = nama;
+            document.getElementById('jabM').value = jab;
+            document.getElementById('statM').value = stat;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // FORM SUBMIT HANDLING
+        document.getElementById('formRekapManual').addEventListener('submit', function(e) {
             e.preventDefault();
-            const payload = { action: "simpan_absen", nip: document.getElementById('nipRekap').value, bulan: document.getElementById('bulanRekap').value, tahun: document.getElementById('tahunRekap').value, hadir: document.getElementById('hadir').value, sakit: document.getElementById('sakit').value, izin: document.getElementById('izin').value, alpa: document.getElementById('alpa').value, keterangan: document.getElementById('keteranganRekap').value };
-            fetch(URL_GAS, { method: 'POST', body: JSON.stringify(payload) }).then(res => res.json()).then(() => { Swal.fire('Tersimpan', '', 'success'); loadRekap(); resetFormRekap(); });
+            const payload = { 
+                action: "simpan_absen", 
+                nip: document.getElementById('nipRekap').value, 
+                bulan: document.getElementById('bulanInput').value, 
+                tahun: document.getElementById('tahunInput').value, 
+                hadir: document.getElementById('h').value, 
+                sakit: document.getElementById('s').value, 
+                izin: document.getElementById('i').value, 
+                alpa: document.getElementById('a').value, 
+                keterangan: document.getElementById('ketManual').value 
+            };
+            
+            Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            
+            fetch(URL_GAS, { method: 'POST', body: JSON.stringify(payload) })
+            .then(r => r.json())
+            .then(() => { 
+                Swal.fire('Berhasil','Data rekap berhasil diperbarui.','success'); 
+                document.getElementById('formRekapManual').reset();
+                loadRekap(); 
+            });
         });
 
-        function loadPegawai(cb) { fetch(URL_GAS + "?action=get_pegawai").then(res => res.json()).then(data => { masterPegawai = data; renderTabelPegawai(); populateDropdown(); if(cb) cb(); }); }
-        function populateDropdown() { const sel = document.getElementById('nipRekap'); sel.innerHTML = '<option value="">-- Pilih Pegawai --</option>'; masterPegawai.forEach(p => { if(p.NIP_NIK) sel.innerHTML += `<option value="${p.NIP_NIK}">${p.Nama_Lengkap}</option>`; }); }
-        function renderTabelPegawai() {
-            const tbody = document.getElementById('tableBodyPegawai'); tbody.innerHTML = '';
-            masterPegawai.forEach((p, i) => {
-                tbody.innerHTML += `<tr class="hover:bg-gray-50 border-b"><td class="border px-4 py-2 text-center">${i+1}</td><td class="border px-4 py-2 font-mono text-xs">${p.NIP_NIK}</td><td class="border px-4 py-2 font-bold">${p.Nama_Lengkap}</td><td class="border px-4 py-2 text-xs">${p.Jabatan}</td><td class="border px-4 py-2 text-center"><span class="px-2 py-0.5 rounded text-[10px] ${p.Status === 'Aktif' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'} font-bold">${p.Status}</span></td><td class="border px-4 py-2 text-center"><button onclick="editPegawai('${p.NIP_NIK}', '${p.Nama_Lengkap}', '${p.Jabatan}', '${p.Kategori}', '${p.Status}')" class="text-blue-500 text-sm">✎</button></td></tr>`;
-            });
-        }
         document.getElementById('formPegawai').addEventListener('submit', function(e) {
             e.preventDefault();
-            const payload = { action: "simpan_pegawai", nip: document.getElementById('nipMaster').value, nama: document.getElementById('namaMaster').value, jabatan: document.getElementById('jabatanMaster').value, kategori: document.getElementById('kategoriMaster').value, status: document.getElementById('statusMaster').value };
-            fetch(URL_GAS, { method: 'POST', body: JSON.stringify(payload) }).then(res => res.json()).then(() => { Swal.fire('Berhasil', '', 'success'); loadPegawai(); resetFormPegawai(); });
+            const payload = { 
+                action: "simpan_pegawai", 
+                nip: document.getElementById('nipM').value, 
+                nama: document.getElementById('namaM').value, 
+                jabatan: document.getElementById('jabM').value, 
+                status: document.getElementById('statM').value, 
+                kategori: "PNS" 
+            };
+            
+            Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            fetch(URL_GAS, { method: 'POST', body: JSON.stringify(payload) })
+            .then(r => r.json())
+            .then(() => { 
+                Swal.fire('Berhasil','Data pegawai berhasil diperbarui.','success'); 
+                document.getElementById('formPegawai').reset();
+                document.getElementById('nipM').readOnly = false;
+                document.getElementById('nipM').classList.remove('bg-slate-100');
+                loadPegawai(); 
+            });
         });
 
-        function loadLogHarian() {
-            const tgl = document.getElementById('filterTanggalMonitoring').value;
-            const tbody = document.getElementById('tableBodyMonitoring');
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 font-bold">Sinkronisasi Log...</td></tr>';
+        // SINKRONISASI OTOMATIS
+        async function generateRekapOtomatis() {
+            const bln = document.getElementById('filterBulan').value;
+            const thn = document.getElementById('filterTahun').value;
             
-            Promise.all([fetch(URL_GAS + "?action=get_pegawai").then(r => r.json()), fetch(URL_GAS + "?action=get_log_harian").then(r => r.json())])
-            .then(([pegawai, logs]) => {
-                tbody.innerHTML = '';
-                // PERBAIKAN: Filter tanggal mendukung format yyyy-mm-dd dan dd/mm/yyyy
-                let filtered = logs.filter(l => { 
-                    let s = String(l.Waktu_Server).replace(/'/g, "").split(" ")[0];
-                    let p = s.includes("-") ? s.split("-") : s.split("/");
-                    let iso = p[0].length === 4 ? `${p[0]}-${p[1].padStart(2,'0')}-${p[2].padStart(2,'0')}` : `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
-                    return iso === tgl;
-                });
-                
-                let nipsSudah = filtered.map(l => String(l.NIP_NIK).replace(/\s+/g, '').replace(/'/g, ""));
-                let belum = pegawai.filter(p => p.Status === "Aktif" && !nipsSudah.includes(String(p.NIP_NIK).replace(/\s+/g, '').replace(/'/g, "")));
-                
-                filtered.reverse().forEach(l => renderMonitoringRow(l, "sudah"));
-                belum.forEach(p => renderMonitoringRow(p, "belum"));
-                
-                document.getElementById('stat-hadir').innerText = filtered.filter(l => l.Aksi.includes("Datang") || l.Aksi === "Tugas Luar").length;
-                document.getElementById('stat-telat').innerText = filtered.filter(l => l.Aksi.includes("Terlambat")).length;
-                document.getElementById('stat-belum').innerText = belum.length;
-            });
-        }
-        function renderMonitoringRow(data, tipe) {
-            const tr = document.createElement('tr');
-            if(tipe === "sudah") {
-                tr.className = "border-b hover:bg-slate-50";
-                tr.innerHTML = `<td class="px-6 py-4 font-mono text-[10px] text-gray-400 font-bold">${data.Waktu_Server}</td><td class="px-6 py-4 font-bold text-gray-700">${data.Nama_Pegawai}<br><span class="text-[9px] text-gray-400 font-mono">${data.NIP_NIK}</span></td><td class="px-6 py-4 text-center"><span class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${data.Aksi.includes('Terlambat') ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}">${data.Aksi}</span></td><td class="px-6 py-4 text-[10px] font-bold ${data.Status_Jarak === 'Valid' ? 'text-emerald-600' : 'text-rose-500'} text-center">${data.Status_Jarak}</td><td class="px-6 py-4 text-center"><a href="https://www.google.com/maps?q=${data.Koordinat_GPS}" target="_blank" class="text-blue-600 font-bold text-xs underline">Maps</a></td>`;
-            } else {
-                tr.className = "bg-gray-50 opacity-60 border-b";
-                tr.innerHTML = `<td class="px-6 py-4 italic text-gray-300">-- : --</td><td class="px-6 py-4 font-bold text-gray-400">${data.Nama_Lengkap}<br><span class="text-[9px] text-gray-300 font-mono">${data.NIP_NIK}</span></td><td class="px-6 py-4 text-center"><span class="bg-gray-200 text-gray-500 px-3 py-1 rounded-full text-[9px] font-black uppercase">Absen Bolong</span></td><td class="px-6 py-4 text-center text-gray-300">-</td><td class="px-6 py-4 text-center text-gray-300 text-xs italic">-</td>`;
+            if (!bln) {
+                Swal.fire('Filter Kosong', 'Pilih bulan terlebih dahulu sebelum melakukan sinkronisasi.', 'warning');
+                return;
             }
-            document.getElementById('tableBodyMonitoring').appendChild(tr);
-        }
 
-        function resetFormRekap() { document.getElementById('formAbsen').reset(); document.getElementById('btnBatalRekap').classList.add('hidden'); document.getElementById('btnSubmitRekap').innerText = "Simpan Data Absen"; document.getElementById('formTitleRekap').innerText = "Input Rekap Absensi"; }
-        function resetFormPegawai() { document.getElementById('formPegawai').reset(); document.getElementById('btnBatalPegawai').classList.add('hidden'); document.getElementById('nipMaster').readOnly = false; document.getElementById('formTitlePegawai').innerText = "Form Data Pegawai"; }
-        function editRekap(nip, bln, thn, h, s, i, a, ket) { document.getElementById('nipRekap').value = nip; autoFillNip(); document.getElementById('bulanRekap').value = bln; document.getElementById('tahunRekap').value = thn; document.getElementById('hadir').value = h; document.getElementById('sakit').value = s; document.getElementById('izin').value = i; document.getElementById('alpa').value = a; document.getElementById('keteranganRekap').value = ket; document.getElementById('btnBatalRekap').classList.remove('hidden'); document.getElementById('btnSubmitRekap').innerText = "Update"; window.scrollTo(0,0); }
-        function editPegawai(nip, nama, jab, kat, stat) { document.getElementById('nipMaster').value = nip; document.getElementById('nipMaster').readOnly = true; document.getElementById('namaMaster').value = nama; document.getElementById('jabatanMaster').value = jab; document.getElementById('kategoriMaster').value = kat; document.getElementById('statusMaster').value = stat; document.getElementById('btnBatalPegawai').classList.remove('hidden'); document.getElementById('btnSubmitPegawai').innerText = "Update"; window.scrollTo(0,0); }
-        async function cetakLaporan() { const today = new Date(); document.getElementById('tanggalCetakLaporan').innerText = `Bungku, ${today.getDate()} Mei 2026`; window.print(); }
-        function exportKeExcel() { Swal.fire('Info', 'Fitur Excel sedang dioptimalkan. Gunakan Cetak Laporan (PDF) untuk hasil resmi.', 'info'); }
+            const { value: hari } = await Swal.fire({ 
+                title: 'Sinkronisasi Otomatis', 
+                text: `Berapa hari kerja efektif di bulan ${bln} ${thn}? (Masukkan angka)`, 
+                input: 'number', 
+                inputAttributes: { min: 1, max: 31 },
+                showCancelButton: true,
+                confirmButtonText: 'Mulai Sinkronisasi'
+            });
+            
+            if (hari) {
+                Swal.fire({ title: 'Sinkronisasi Berjalan...', text: 'Sistem sedang membaca log harian V4', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                
+                try {
+                    const res = await fetch(URL_GAS, { 
+                        method: 'POST', 
+                        body: JSON.stringify({ action: "generate_rekap", bulan: bln, tahun: thn, hariKerja: hari }) 
+                    });
+                    const data = await res.json();
+                    Swal.fire('Sinkronisasi Selesai', data.message, 'success');
+                    loadRekap();
+                } catch(err) {
+                    Swal.fire('Error', 'Gagal memproses sinkronisasi. Cek jaringan Anda.', 'error');
+                }
+            }
+        }
     </script>
 </body>
 </html>
