@@ -151,14 +151,14 @@
             btnTL.innerHTML = `<span class="text-xl"></span><span class="text-xs tracking-widest">TUGAS LUAR / DINAS</span>`;
 
             // Aturan Absen Datang: 07:30 - 09:00 WITA
-            if (jamSekarang >= "00:00" && jamSekarang <= "23:59") {
+            if (jamSekarang >= "07:30" && jamSekarang <= "09:00") {
                 btnDatang.disabled = false;
                 btnDatang.className = "bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-[0_4px_15px_rgba(16,185,129,0.4)] transition transform active:scale-95 flex flex-col items-center justify-center gap-1 border border-emerald-400";
                 btnDatang.innerHTML = `<span class="text-3xl drop-shadow-md"></span><span class="text-xs uppercase tracking-widest font-black">DATANG</span>`;
             }
 
             // Aturan Absen Pulang: 16:00 - 17:00 WITA
-            if (jamSekarang >= "00:00" && jamSekarang <= "17:00") {
+            if (jamSekarang >= "16:00" && jamSekarang <= "17:00") {
                 btnPulang.disabled = false;
                 btnPulang.className = "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-4 rounded-xl shadow-[0_4px_15px_rgba(37,99,235,0.4)] transition transform active:scale-95 flex flex-col items-center justify-center gap-1 border border-blue-500";
                 btnPulang.innerHTML = `<span class="text-3xl drop-shadow-md"></span><span class="text-xs uppercase tracking-widest font-black">PULANG</span>`;
